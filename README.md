@@ -1,12 +1,5 @@
 GoPomodoro
 ==========
 
-A system tool written in golang + fyne.io to go through the pomodoro time management cycles. 
+testing place for the 4dc prompt workflow, by building a minimal macos native pomodoro app using golang.
 
-Actions
---------
-- select a pomodoro, short or long break
-- start, pause and stop the activity
-- displays the remaining time as a bar
-
-All interaction is done using the system tray.
