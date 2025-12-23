@@ -4,6 +4,8 @@ import (
 "flag"
 "log"
 
+"github.com/co0p/gopomodoro/internal/storage"
+"github.com/co0p/gopomodoro/internal/timer"
 "github.com/co0p/gopomodoro/internal/tray"
 "github.com/co0p/gopomodoro/internal/ui"
 "github.com/getlantern/systray"
@@ -15,6 +17,12 @@ func main() {
 	flag.Parse()
 	
 	log.Println("[INFO] GoPomodoro starting...")
+	
+	// Ensure storage directory exists before starting UI
+	if err := storage.EnsureDataDir(); err != nil {
+		log.Fatalf("[ERROR] Failed to initialize storage: %v", err)
+	}
+	log.Println("[INFO] Data directory ensured")
 	
 	// Note: To fully suppress dock icon on macOS, this app should be built as a .app bundle
 	// with Info.plist containing LSUIElement=true
@@ -59,6 +67,18 @@ func onReady() {
 	// Initialize menu items (systray menu approach)
 	window.InitializeMenu()
 	log.Println("[INFO] Dropdown window created")
+	
+	// Create and wire timer
+	tmr := timer.New()
+	log.Println("[INFO] Timer created")
+	
+	// Set timer in window (this registers event handlers and starts click handlers)
+	window.SetTimer(tmr)
+	log.Println("[INFO] Timer wired to UI")
+	
+	// Update button states to enable Start button
+	window.UpdateButtonStates(tmr.GetState())
+	log.Println("[INFO] Button states initialized")
 	
 	// For systray menu approach, menu is always "ready" to show
 	// No explicit click handler needed - systray manages menu display

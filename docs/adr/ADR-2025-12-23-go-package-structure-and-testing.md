@@ -63,6 +63,21 @@ We adopt a **pragmatic testing strategy**:
 - Fast, simple tests preferred over comprehensive coverage
 - Tests run via `make test` without requiring CI infrastructure
 
+**Test package naming:**
+
+- **Tests live in `_test` packages**: Test files use the `package <name>_test` convention (e.g., `storage_test` for the `storage` package)
+- **Black-box testing**: This enforces testing through the public API only, ensuring tests don't depend on internal implementation details
+- **Exceptions allowed**: When testing internal helpers or private functions is necessary, tests may use the same package name
+- **Example structure**:
+  ```
+  internal/storage/
+    ├── storage.go          (package storage)
+    └── storage_test.go     (package storage_test)
+  internal/timer/
+    ├── timer.go            (package timer)
+    └── timer_test.go       (package timer_test)
+  ```
+
 ### 3. Library Usage and Dependencies
 
 We adopt a **minimal, pragmatic approach** to external dependencies:
