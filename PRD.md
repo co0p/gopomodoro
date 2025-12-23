@@ -342,8 +342,8 @@ Session 4/4:  🍅🍅🍅🍅
 ### Phase 1: MVP Core (v0.1)
 **Goal:** Basic functional pomodoro timer
 
-- [ ] **F1.1** Tray icon with basic states (idle, work, break)
-- [ ] **F1.2** Left-click dropdown UI
+- [x] **F1.1** Tray icon with basic states (idle, work, break) — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
+- [x] **F1.2** Left-click dropdown UI — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
 - [ ] **F1.3** Timer logic (25/5/15 hardcoded)
 - [ ] **F1.4** Start/Pause/Reset buttons
 - [ ] **F1.5** Basic timer display (MM:SS)
