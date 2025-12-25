@@ -1,30 +1,31 @@
 package timer
 
 import (
-"sync"
-"time"
+	"sync"
+	"time"
 )
 
 // State represents the current state of the timer
 type State int
 
 const (
-StateIdle State = iota
-StateRunning
-StatePaused
+	StateIdle State = iota
+	StateRunning
+	StatePaused
 
-defaultDuration = 1500 // 25 minutes in seconds
-tickInterval    = 1 * time.Second
+	defaultDuration = 1500 // 25 minutes in seconds
+	tickInterval    = 1 * time.Second
 )
 
 // Timer manages a countdown timer
 type Timer struct {
 	mu          sync.Mutex
 	state       State
+	sessionType string
 	remaining   int
 	ticker      *time.Ticker
 	stopChan    chan bool
-	onStarted   func()
+	onStarted   func(string, int)
 	onTick      func(int)
 	onCompleted func()
 }
@@ -52,8 +53,15 @@ func (t *Timer) GetRemaining() int {
 	return t.remaining
 }
 
+// GetSessionType returns the current session type
+func (t *Timer) GetSessionType() string {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	return t.sessionType
+}
+
 // OnStarted registers a callback to be called when the timer starts
-func (t *Timer) OnStarted(handler func()) {
+func (t *Timer) OnStarted(handler func(string, int)) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	t.onStarted = handler
@@ -73,21 +81,23 @@ func (t *Timer) OnCompleted(handler func()) {
 	t.onCompleted = handler
 }
 
-// Start begins the timer countdown
-func (t *Timer) Start() {
+// Start begins the timer countdown with the specified session type and duration
+func (t *Timer) Start(sessionType string, durationSeconds int) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	// Only start if currently idle (no-op otherwise)
 	if t.state != StateIdle {
 		return
 	}
-	
+
+	t.sessionType = sessionType
+	t.remaining = durationSeconds
 	t.state = StateRunning
 	t.startTicker()
-	
+
 	if t.onStarted != nil {
-		t.onStarted()
+		t.onStarted(sessionType, durationSeconds)
 	}
 }
 
@@ -95,12 +105,12 @@ func (t *Timer) Start() {
 func (t *Timer) Pause() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	// Only pause if currently running
 	if t.state != StateRunning {
 		return
 	}
-	
+
 	t.stopTicker()
 	t.state = StatePaused
 }
@@ -109,12 +119,12 @@ func (t *Timer) Pause() {
 func (t *Timer) Resume() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	// Only resume if currently paused
 	if t.state != StatePaused {
 		return
 	}
-	
+
 	t.state = StateRunning
 	t.startTicker()
 }
@@ -123,10 +133,11 @@ func (t *Timer) Resume() {
 func (t *Timer) Reset() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
-	
+
 	t.stopTicker()
 	t.state = StateIdle
-	t.remaining = defaultDuration
+	t.sessionType = ""
+	t.remaining = 0
 }
 
 // startTicker starts the ticker goroutine (must be called with lock held)
@@ -148,24 +159,29 @@ func (t *Timer) stopTicker() {
 func (t *Timer) tickLoop() {
 	for {
 		select {
-		case <-t.ticker.C:
+		case _, ok := <-t.ticker.C:
+			if !ok {
+				// Ticker was closed
+				return
+			}
+
 			t.mu.Lock()
-			
+
 			if t.state != StateRunning {
 				t.mu.Unlock()
 				return
 			}
-			
+
 			t.remaining--
 			currentRemaining := t.remaining
-			
+
 			// Check for completion
 			if t.remaining == 0 {
 				t.handleCompletion()
 				t.mu.Unlock()
 				return
 			}
-			
+
 			// Call onTick callback
 			if t.onTick != nil {
 				callback := t.onTick
@@ -174,7 +190,7 @@ func (t *Timer) tickLoop() {
 			} else {
 				t.mu.Unlock()
 			}
-			
+
 		case <-t.stopChan:
 			return
 		}
@@ -185,7 +201,7 @@ func (t *Timer) tickLoop() {
 func (t *Timer) handleCompletion() {
 	t.stopTicker()
 	t.state = StateIdle
-	
+
 	if t.onCompleted != nil {
 		callback := t.onCompleted
 		// Call callback without lock to avoid deadlock

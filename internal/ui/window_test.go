@@ -101,3 +101,6 @@ func TestStateTransitions(t *testing.T) {
 		t.Error("Reset should be enabled after resume (Running state)")
 	}
 }
+
+// Tests for helper functions that were moved to session package
+// These tests are now in internal/session/session_test.go

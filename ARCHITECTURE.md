@@ -55,6 +55,8 @@ graph TB
         
         UI[UI Package<br/>internal/ui<br/>Dropdown Menu]
         
+        Session[Session Package<br/>internal/session<br/>Cycle Logic]
+        
         Tray[Tray Package<br/>internal/tray<br/>System Tray Icon]
         
         Timer[Timer Package<br/>internal/timer<br/>Countdown Logic]
@@ -66,6 +68,8 @@ graph TB
     macOS -->|Events| Tray
     Tray -.->|Click events| UI
     UI -->|Start/Pause/Reset| Timer
+    UI -->|Cycle state| Session
+    Session -->|Next session type| UI
     Timer -.->|State changes<br/>Tick events| UI
     UI -->|Update icon| Tray
     Timer -->|Log session| Storage
@@ -80,13 +84,72 @@ graph TB
 
 - **Main (cmd/gopomodoro)**: Application entry point that wires all components together. Initializes storage, creates timer, sets up tray icon and UI, and manages application lifecycle.
 
-- **Tray Package (internal/tray)**: Thin wrapper around `systray` library. Manages system tray icon image and tooltip. Provides interface for click events.
+- **Tray Package (internal/tray)**: Thin wrapper around `systray` library. Manages system tray icon image and tooltip based on session type and timer state (work 🍅, short break ☕, long break 🌟, paused ⏸️, idle ○).
 
-- **UI Package (internal/ui)**: Manages the dropdown menu (systray menu items). Renders timer display, buttons, and state indicators. Translates user clicks into timer commands. Updates UI based on timer events.
+- **UI Package (internal/ui)**: Manages the dropdown menu (systray menu items). Renders timer display, buttons, and state indicators. Translates user clicks into timer commands. Coordinates centralized UI updates through UpdateButtonStates(). Updates tray icon via centralized updateTrayIcon() helper.
+
+- **Session Package (internal/session)**: Manages pomodoro cycle logic and session state. Determines next session type based on completed work sessions (4-session cycle). Tracks cycle progress and formats cycle indicator display (🍅○○○). Pure business logic with no UI dependencies - fully testable in isolation.
 
 - **Timer Package (internal/timer)**: Core countdown logic. Maintains timer state (Idle, Running, Paused). Emits events on state changes (started, tick, completed). Thread-safe state management with mutex.
 
 - **Storage Package (internal/storage)**: Handles file system persistence. Creates and manages `~/.gopomodoro/` directory. Appends session logs to CSV file with timestamp, session type, event, and duration.
+
+---
+
+## Component Diagram: Session Package (C4 Level 3)
+
+```mermaid
+C4Component
+    title Component Diagram for Session Package
+
+    Container_Boundary(session, "Session Package") {
+        Component(session_struct, "Session", "State Holder", "CurrentType, CompletedWorkSessions")
+        Component(determine_next, "DetermineNext", "Function", "Calculates next session type and duration")
+        Component(increment, "IncrementCycle", "Function", "Increments work session counter")
+        Component(format, "FormatCycleIndicator", "Function", "Formats cycle display (🍅○○○)")
+        Component(constants, "Constants", "Package Level", "TypeWork, DurationWork, SessionsPerCycle")
+    }
+
+    Container(ui, "UI Package", "Go", "Menu rendering and interaction")
+
+    Rel(ui, session_struct, "reads/writes", "State access")
+    Rel(ui, determine_next, "calls", "Get next session")
+    Rel(ui, increment, "calls", "On work complete/skip")
+    Rel(ui, format, "calls", "Update cycle indicator")
+    Rel(determine_next, session_struct, "reads/writes", "State logic")
+    Rel(increment, session_struct, "writes", "Counter update")
+    Rel(format, session_struct, "reads", "Display logic")
+    Rel(determine_next, constants, "uses", "Session durations")
+```
+
+**Session Component Responsibilities:**
+
+- **Session (Struct)**: 
+  - `CurrentType`: "work", "short_break", or "long_break"
+  - `CompletedWorkSessions`: Counter for 4-session cycle tracking
+  - Pure data holder with no dependencies
+
+- **DetermineNext()**: 
+  - Returns next session type and duration based on current state
+  - Implements pomodoro cycle rules:
+    - work → short_break (if < 4 sessions)
+    - work → long_break (if ≥ 4 sessions)
+    - short_break → work
+    - long_break → work (resets cycle counter to 0)
+
+- **IncrementCycle()**: 
+  - Increments CompletedWorkSessions only when CurrentType is "work"
+  - Called on session completion or skip
+
+- **FormatCycleIndicator()**: 
+  - Returns "Session X/4  🍅🍅○○" style string
+  - During work: shows current session being worked on
+  - During break: shows session just completed
+
+- **Constants**: 
+  - Session types: TypeWork, TypeShortBreak, TypeLongBreak
+  - Durations: DurationWork (1500s), DurationShortBreak (300s), DurationLongBreak (900s)
+  - Cycle length: SessionsPerCycle (4)
 
 ---
 
@@ -164,27 +227,32 @@ C4Component
 **UI Component Responsibilities:**
 
 - **Window**: 
-  - Coordinates menu state and timer interaction
-  - Holds references to all menu items
+  - Coordinates menu state, timer interaction, and session cycle logic
+  - Holds references to all menu items, timer, session, and tray
   - Mediates between timer events and UI updates
   - Triggers storage logging on session events
+  - Centralizes UI updates through UpdateButtonStates() which updates both buttons and tray icon
 
 - **Menu Items** (via systray):
   - `header`: Displays current state ("Ready", "Work Session", "Paused")
   - `timerDisplay`: Shows countdown (e.g., "25:00", "24:37")
-  - Buttons: Start, Pause, Reset, Quit
+  - `cycleIndicator`: Shows session progress ("Session 2/4  🍅🍅○○")
+  - Buttons: Start, Pause, Reset, Skip, Quit
   - Enabled/disabled based on timer state
 
 - **Click Handlers**:
   - Long-running goroutines listening for button click events
-  - Translate clicks into timer commands
+  - Translate clicks into timer and session commands
+  - handleStartClick: Starts new session or resumes from pause
+  - handleSkipClick: Increments cycle and determines next session
   - Run for the application lifetime
 
 - **Event Handlers**:
   - Respond to timer state changes
-  - Update menu item text and button states
+  - Update menu item text and button states via UpdateButtonStates()
   - Log session starts and completions
-  - Update tray icon to reflect current state
+  - Update session state (CurrentType) when timer starts
+  - Increment cycle counter when sessions complete or are skipped
 
 ---
 

@@ -31,13 +31,13 @@ func TestStart(t *testing.T) {
 
 	startedCalled := false
 	var mu sync.Mutex
-	tmr.OnStarted(func() {
+	tmr.OnStarted(func(sessionType string, durationSeconds int) {
 		mu.Lock()
 		startedCalled = true
 		mu.Unlock()
 	})
 
-	tmr.Start()
+	tmr.Start("work", 1500)
 
 	if tmr.GetState() != StateRunning {
 		t.Errorf("Expected state to be StateRunning after Start(), got %v", tmr.GetState())
@@ -52,12 +52,12 @@ func TestStart(t *testing.T) {
 
 	// Starting again should be a no-op
 	startedCalledAgain := false
-	tmr.OnStarted(func() {
+	tmr.OnStarted(func(sessionType string, durationSeconds int) {
 		mu.Lock()
 		startedCalledAgain = true
 		mu.Unlock()
 	})
-	tmr.Start()
+	tmr.Start("work", 1500)
 
 	mu.Lock()
 	called = startedCalledAgain
@@ -70,11 +70,6 @@ func TestStart(t *testing.T) {
 func TestTick(t *testing.T) {
 	tmr := New()
 
-	// Set a short remaining time for faster testing
-	tmr.mu.Lock()
-	tmr.remaining = 3
-	tmr.mu.Unlock()
-
 	var mu sync.Mutex
 	tickCount := 0
 	lastRemaining := 0
@@ -85,7 +80,8 @@ func TestTick(t *testing.T) {
 		mu.Unlock()
 	})
 
-	tmr.Start()
+	// Use short duration for faster testing
+	tmr.Start("work", 3)
 
 	// Wait for a few ticks
 	time.Sleep(2100 * time.Millisecond)
@@ -106,11 +102,8 @@ func TestTick(t *testing.T) {
 
 func TestPauseAndResume(t *testing.T) {
 	tmr := New()
-	tmr.mu.Lock()
-	tmr.remaining = 10
-	tmr.mu.Unlock()
 
-	tmr.Start()
+	tmr.Start("work", 10)
 
 	time.Sleep(100 * time.Millisecond)
 
@@ -146,7 +139,7 @@ func TestPauseAndResume(t *testing.T) {
 func TestReset(t *testing.T) {
 	tmr := New()
 
-	tmr.Start()
+	tmr.Start("work", 1500)
 	time.Sleep(100 * time.Millisecond)
 
 	tmr.Reset()
@@ -155,18 +148,39 @@ func TestReset(t *testing.T) {
 		t.Errorf("Expected state to be StateIdle after Reset(), got %v", tmr.GetState())
 	}
 
-	if tmr.GetRemaining() != 1500 {
-		t.Errorf("Expected remaining to be reset to 1500, got %d", tmr.GetRemaining())
+	if tmr.GetRemaining() != 0 {
+		t.Errorf("Expected remaining to be reset to 0, got %d", tmr.GetRemaining())
 	}
 
 	// Reset from paused state
-	tmr.Start()
+	tmr.Start("work", 1500)
 	time.Sleep(100 * time.Millisecond)
 	tmr.Pause()
 	tmr.Reset()
 
 	if tmr.GetState() != StateIdle {
 		t.Error("Reset from paused should return to idle")
+	}
+}
+
+func TestReset_ClearsSessionType(t *testing.T) {
+	tmr := New()
+
+	tmr.Start("work", 1500)
+	time.Sleep(100 * time.Millisecond)
+
+	tmr.Reset()
+
+	if tmr.GetSessionType() != "" {
+		t.Errorf("Expected GetSessionType() to return empty string after Reset, got %q", tmr.GetSessionType())
+	}
+
+	if tmr.GetRemaining() != 0 {
+		t.Errorf("Expected GetRemaining() to return 0 after Reset, got %d", tmr.GetRemaining())
+	}
+
+	if tmr.GetState() != StateIdle {
+		t.Errorf("Expected state to be StateIdle after Reset, got %v", tmr.GetState())
 	}
 }
 
@@ -186,7 +200,7 @@ func TestCompletion(t *testing.T) {
 		mu.Unlock()
 	})
 
-	tmr.Start()
+	tmr.Start("work", 1)
 
 	// Wait for completion
 	time.Sleep(1200 * time.Millisecond)
@@ -201,5 +215,63 @@ func TestCompletion(t *testing.T) {
 
 	if tmr.GetState() != StateIdle {
 		t.Errorf("Expected state to be StateIdle after completion, got %v", tmr.GetState())
+	}
+}
+
+func TestGetSessionType_ReturnsEmptyWhenIdle(t *testing.T) {
+	tmr := New()
+
+	sessionType := tmr.GetSessionType()
+
+	if sessionType != "" {
+		t.Errorf("Expected GetSessionType() to return empty string for new timer, got %q", sessionType)
+	}
+}
+
+func TestStart_SetsSessionTypeAndDuration(t *testing.T) {
+	tmr := New()
+
+	tmr.Start("work", 1500)
+
+	if tmr.GetSessionType() != "work" {
+		t.Errorf("Expected GetSessionType() to return \"work\", got %q", tmr.GetSessionType())
+	}
+
+	if tmr.GetRemaining() != 1500 {
+		t.Errorf("Expected GetRemaining() to return 1500, got %d", tmr.GetRemaining())
+	}
+
+	if tmr.GetState() != StateRunning {
+		t.Errorf("Expected state to be StateRunning, got %v", tmr.GetState())
+	}
+}
+
+func TestOnStarted_CallbackReceivesSessionContext(t *testing.T) {
+	tmr := New()
+
+	var receivedSessionType string
+	var receivedDuration int
+	var mu sync.Mutex
+
+	tmr.OnStarted(func(sessionType string, durationSeconds int) {
+		mu.Lock()
+		receivedSessionType = sessionType
+		receivedDuration = durationSeconds
+		mu.Unlock()
+	})
+
+	tmr.Start("work", 1500)
+
+	mu.Lock()
+	sessionType := receivedSessionType
+	duration := receivedDuration
+	mu.Unlock()
+
+	if sessionType != "work" {
+		t.Errorf("Expected callback to receive sessionType \"work\", got %q", sessionType)
+	}
+
+	if duration != 1500 {
+		t.Errorf("Expected callback to receive duration 1500, got %d", duration)
 	}
 }
