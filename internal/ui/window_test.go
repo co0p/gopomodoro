@@ -1,5 +1,9 @@
 package ui
 
+// Note: These tests use package ui (not ui_test) because they test private
+// helper functions (formatTime, shouldStartBeEnabled, etc.) that are implementation
+// details not exposed in the public API. This is an accepted exception per the ADR.
+
 import (
 	"testing"
 

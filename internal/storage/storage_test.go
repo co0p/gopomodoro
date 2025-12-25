@@ -1,15 +1,17 @@
-package storage
+package storage_test
 
 import (
 	"os"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/co0p/gopomodoro/internal/storage"
 )
 
 func TestEnsureDataDir(t *testing.T) {
 	// Call EnsureDataDir
-	err := EnsureDataDir()
+	err := storage.EnsureDataDir()
 	if err != nil {
 		t.Fatalf("EnsureDataDir() failed: %v", err)
 	}
@@ -32,20 +34,26 @@ func TestEnsureDataDir(t *testing.T) {
 }
 
 func TestLogSession(t *testing.T) {
-	// Use a temporary directory for testing
+	// Set a temporary home directory for testing
 	tmpDir := t.TempDir()
+	t.Setenv("HOME", tmpDir)
 
 	// Create a known timestamp
 	timestamp := time.Date(2025, 12, 23, 10, 30, 0, 0, time.UTC)
 
-	// Call LogSession with tmpDir
-	logPath := tmpDir + "/sessions.log"
-	err := logSessionToPath(logPath, timestamp, "work", "completed", 25)
+	// Ensure data directory exists
+	if err := storage.EnsureDataDir(); err != nil {
+		t.Fatalf("Failed to ensure data dir: %v", err)
+	}
+
+	// Call LogSession using public API
+	err := storage.LogSession(timestamp, "work", "completed", 25)
 	if err != nil {
 		t.Fatalf("LogSession() failed: %v", err)
 	}
 
-	// Read file contents
+	// Read file contents from data directory
+	logPath := tmpDir + "/.gopomodoro/sessions.log"
 	content, err := os.ReadFile(logPath)
 	if err != nil {
 		t.Fatalf("Failed to read sessions.log: %v", err)
@@ -67,13 +75,19 @@ func TestLogSession(t *testing.T) {
 func TestLogSessionCreatesFileWithHeader(t *testing.T) {
 	// Use a temporary directory for testing
 	tmpDir := t.TempDir()
-	logPath := tmpDir + "/sessions.log"
+	t.Setenv("HOME", tmpDir)
+	logPath := tmpDir + "/.gopomodoro/sessions.log"
 
 	// Create a known timestamp
 	timestamp := time.Date(2025, 12, 23, 10, 30, 0, 0, time.UTC)
 
+	// Ensure data directory exists
+	if err := storage.EnsureDataDir(); err != nil {
+		t.Fatalf("Failed to ensure data dir: %v", err)
+	}
+
 	// Call LogSession (file doesn't exist yet)
-	err := logSessionToPath(logPath, timestamp, "work", "started", 0)
+	err := storage.LogSession(timestamp, "work", "started", 0)
 	if err != nil {
 		t.Fatalf("LogSession() failed: %v", err)
 	}
@@ -102,7 +116,7 @@ func TestLogSessionCreatesFileWithHeader(t *testing.T) {
 
 	// Log another session and verify header isn't duplicated
 	timestamp2 := time.Date(2025, 12, 23, 10, 55, 0, 0, time.UTC)
-	err = logSessionToPath(logPath, timestamp2, "work", "completed", 25)
+	err = storage.LogSession(timestamp2, "work", "completed", 25)
 	if err != nil {
 		t.Fatalf("Second LogSession() failed: %v", err)
 	}
@@ -137,9 +151,15 @@ func TestLogSessionFailure(t *testing.T) {
 	// Create a directory with the same name as the log file
 	// This will cause the file open to fail
 	tmpDir := t.TempDir()
-	logPath := tmpDir + "/sessions.log"
+	t.Setenv("HOME", tmpDir)
 
-	// Create a directory where the file should be
+	// Ensure data directory exists
+	if err := storage.EnsureDataDir(); err != nil {
+		t.Fatalf("Failed to ensure data dir: %v", err)
+	}
+
+	// Create a directory where the sessions.log file should be
+	logPath := tmpDir + "/.gopomodoro/sessions.log"
 	err := os.Mkdir(logPath, 0755)
 	if err != nil {
 		t.Fatalf("Failed to create conflicting directory: %v", err)
@@ -147,7 +167,7 @@ func TestLogSessionFailure(t *testing.T) {
 
 	// Try to log a session - should fail
 	timestamp := time.Date(2025, 12, 23, 10, 30, 0, 0, time.UTC)
-	err = logSessionToPath(logPath, timestamp, "work", "started", 0)
+	err = storage.LogSession(timestamp, "work", "started", 0)
 
 	if err == nil {
 		t.Fatal("Expected error when logging to directory path, got nil")

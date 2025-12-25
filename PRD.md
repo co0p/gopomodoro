@@ -344,11 +344,11 @@ Session 4/4:  🍅🍅🍅🍅
 
 - [x] **F1.1** Tray icon with basic states (idle, work, break) — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
 - [x] **F1.2** Left-click dropdown UI — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
-- [ ] **F1.3** Timer logic (25/5/15 hardcoded)
-- [ ] **F1.4** Start/Pause/Reset buttons
-- [ ] **F1.5** Basic timer display (MM:SS)
-- [ ] **F1.6** Session complete detection
-- [ ] **F1.7** Create `~/.gopomodoro/` directory on first run
+- [x] **F1.3** Timer logic (25/5/15 hardcoded)
+- [x] **F1.4** Start/Pause/Reset buttons
+- [x] **F1.5** Basic timer display (MM:SS)
+- [x] **F1.6** Session complete detection
+- [x] **F1.7** Create `~/.gopomodoro/` directory on first run
 
 **Deliverable:** Can start/pause/reset a single 25-minute timer
 
@@ -403,9 +403,9 @@ Session 4/4:  🍅🍅🍅🍅
 - [ ] **F5.1** Create `settings.json` with defaults
 - [ ] **F5.2** Read settings on app start
 - [ ] **F5.3** Apply custom durations from settings
-- [ ] **F5.4** Create `sessions.log` file
-- [ ] **F5.5** Log session events (start/complete/skip)
-- [ ] **F5.6** Append-only logging with proper timestamps
+- [x] **F5.4** Create `sessions.log` file
+- [x] **F5.5** Log session events (start/complete/skip)
+- [x] **F5.6** Append-only logging with proper timestamps
 - [ ] **F5.7** Handle file I/O errors gracefully
 
 **Deliverable:** Settings persist, sessions are logged
