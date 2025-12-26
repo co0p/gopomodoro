@@ -339,33 +339,33 @@ Session 4/4:  🍅🍅🍅🍅
 
 ## Feature Development Roadmap
 
-### Phase 1: MVP Core (v0.1)
+### Phase 1: MVP Core (v0.1) ✅ COMPLETED
 **Goal:** Basic functional pomodoro timer
 
 - [x] **F1.1** Tray icon with basic states (idle, work, break) — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
-- [x] **F1.2** Left-click dropdown UI — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
-- [x] **F1.3** Timer logic (25/5/15 hardcoded)
-- [x] **F1.4** Start/Pause/Reset buttons
-- [x] **F1.5** Basic timer display (MM:SS)
-- [x] **F1.6** Session complete detection
-- [x] **F1.7** Create `~/.gopomodoro/` directory on first run
+- [x] **F1.2** Left-click dropdown UI (systray menu) — See [Tray Icon and Dropdown UI Increment](docs/increments/tray-icon-and-dropdown-ui/increment.md)
+- [x] **F1.3** Timer logic (25/5/15 hardcoded) — See [timer/timer.go](internal/timer/timer.go)
+- [x] **F1.4** Start/Pause/Reset buttons — See [ui/window.go](internal/ui/window.go)
+- [x] **F1.5** Basic timer display (MM:SS) — See [ui/window.go](internal/ui/window.go)
+- [x] **F1.6** Session complete detection — Timer OnCompleted callback implemented
+- [x] **F1.7** Create `~/.gopomodoro/` directory on first run — See [storage/storage.go](internal/storage/storage.go)
 
-**Deliverable:** Can start/pause/reset a single 25-minute timer
+**Deliverable:** ✅ Can start/pause/reset a single 25-minute timer
 
 ---
 
-### Phase 2: Pomodoro Cycle (v0.2)
+### Phase 2: Pomodoro Cycle (v0.2) ✅ COMPLETED
 **Goal:** Complete pomodoro workflow
 
-- [ ] **F2.1** Implement 4-session cycle logic
-- [ ] **F2.2** Short break (5 min) after work session
-- [ ] **F2.3** Long break (15 min) after 4 cycles
-- [ ] **F2.4** Cycle indicator UI (🍅🍅○○)
-- [ ] **F2.5** Skip button functionality
-- [ ] **F2.6** Auto-transition between sessions (optional)
-- [ ] **F2.7** Tray icon updates per session type
+- [x] **F2.1** Implement 4-session cycle logic — See [session/session.go](internal/session/session.go)
+- [x] **F2.2** Short break (5 min) after work session — DetermineNext() logic implemented
+- [x] **F2.3** Long break (15 min) after 4 cycles — Automatic after 4 work sessions
+- [x] **F2.4** Cycle indicator UI (🍅🍅○○) — FormatCycleIndicator() implemented with full tests
+- [x] **F2.5** Skip button functionality — Skip advances cycle and logs session
+- [x] **F2.6** Auto-transition between sessions — Implemented in handleTimerCompleted
+- [x] **F2.7** Tray icon updates per session type — UpdateIcon() in tray package
 
-**Deliverable:** Full pomodoro cycle works automatically
+**Deliverable:** ✅ Full pomodoro cycle works automatically
 
 ---
 
@@ -397,18 +397,18 @@ Session 4/4:  🍅🍅🍅🍅
 
 ---
 
-### Phase 5: Data Persistence (v0.5)
+### Phase 5: Data Persistence (v0.5) 🔄 PARTIALLY COMPLETED
 **Goal:** Settings and session logging
 
 - [ ] **F5.1** Create `settings.json` with defaults
 - [ ] **F5.2** Read settings on app start
 - [ ] **F5.3** Apply custom durations from settings
-- [x] **F5.4** Create `sessions.log` file
-- [x] **F5.5** Log session events (start/complete/skip)
-- [x] **F5.6** Append-only logging with proper timestamps
-- [ ] **F5.7** Handle file I/O errors gracefully
+- [x] **F5.4** Create `sessions.log` file — See [storage/storage.go](internal/storage/storage.go)
+- [x] **F5.5** Log session events (start/complete/skip) — LogSession() implemented with CSV format
+- [x] **F5.6** Append-only logging with proper timestamps — RFC3339 timestamps used
+- [x] **F5.7** Handle file I/O errors gracefully — Error handling implemented in storage package
 
-**Deliverable:** Settings persist, sessions are logged
+**Deliverable:** 🔄 Sessions are logged; settings persistence pending
 
 ---
 
@@ -583,6 +583,96 @@ Session 4/4:  🍅🍅🍅🍅
 | Version | Date | Changes |
 |---------|------|---------|
 | 1.0 | 2025-12-23 | Initial PRD |
+| 1.1 | 2025-12-26 | Updated completed features: Phase 1 (MVP), Phase 2 (Pomodoro Cycle), Partial Phase 5 (Session Logging) |
+
+---
+
+## Current Status & Next Iteration (Updated 2025-12-26)
+
+### ✅ What's Been Completed
+
+**Phase 1 - MVP Core (v0.1):** Complete functional timer with tray integration
+- Full timer implementation with Start/Pause/Reset/Resume
+- System tray integration using `systray` library
+- Menu-based dropdown UI (macOS native)
+- Data directory creation (`~/.gopomodoro/`)
+
+**Phase 2 - Pomodoro Cycle (v0.2):** Complete workflow automation
+- 4-session pomodoro cycle with short/long breaks
+- Session state management and cycle tracking
+- Skip functionality that advances the cycle
+- Auto-transition between work/break sessions
+- Visual cycle indicator (🍅🍅○○)
+- Dynamic tray icon updates based on session type
+
+**Phase 5 - Data Persistence (Partial):** Session logging infrastructure
+- CSV-based session logging (`sessions.log`)
+- Append-only log with RFC3339 timestamps
+- Event tracking: started, completed, skipped
+- Graceful file I/O error handling
+
+### 🎯 Recommended Next Iteration: Phase 3 (Visual Feedback)
+
+**Why Phase 3 Next?**
+The core timer mechanics and cycle logic are solid. The app is functional but visually basic. Phase 3 will enhance user experience with:
+- Color-coded states for immediate visual feedback
+- Progress visualization showing session advancement
+- Professional polish that makes the app feel complete
+
+**Phase 3 Goals:**
+1. **Color-Coded UI** - Different backgrounds/text colors for work/break/paused states
+2. **Progress Bar** - Visual representation of time elapsed in current session
+3. **Enhanced Icon States** - Better visual distinction between session types
+4. **Dark Mode Support** - Respect system theme preferences
+5. **Smooth Transitions** - Polish the UI with animations
+
+**Implementation Priority (Phase 3):**
+```
+HIGH:
+- F3.1: Color-coded header backgrounds (work=red, break=green, long break=blue)
+- F3.2: Progress bar implementation (20-segment bar updated every 30s)
+- F3.6: Timer updates every 30 seconds (reduce CPU usage)
+
+MEDIUM:
+- F3.3: Tray icon color changes (currently has file structure, needs implementation)
+- F3.4: Dark mode support (read system preference)
+
+LOW:
+- F3.5: Smooth transitions/animations (nice-to-have polish)
+```
+
+**Technical Considerations:**
+- systray menu items support limited formatting (text-based colors via emoji/symbols)
+- May need to explore custom rendering or richer UI framework for true color backgrounds
+- Progress bar can use Unicode block characters: `●●●○○○○○○○` or `━━━━━━━━━━`
+
+**Alternative: Complete Phase 5 First (Settings Management)**
+
+If you prefer functionality over aesthetics, completing Phase 5 would enable:
+- Custom timer durations (F5.1-5.3)
+- User configurability without code changes
+- Foundation for notification preferences (Phase 4)
+
+**Files to Focus On for Phase 3:**
+- [internal/ui/window.go](internal/ui/window.go) - Menu item styling
+- [internal/tray/tray.go](internal/tray/tray.go) - Icon management
+- New file: `internal/ui/colors.go` - Color scheme definitions
+- New file: `internal/ui/progress.go` - Progress bar rendering
+
+### 📊 Test Coverage Status
+
+Current test coverage is excellent for core logic:
+- ✅ Session cycle logic (session_test.go)
+- ✅ Timer mechanics (timer_test.go)
+- ✅ Storage operations (storage_test.go)
+- ⚠️ UI components (window_test.go - limited, needs expansion)
+- ⚠️ Tray integration (tray_test.go - minimal)
+
+**Testing Recommendations for Next Phase:**
+- Add integration tests for full pomodoro cycle workflow
+- Mock systray interactions for UI testing
+- Add table-driven tests for color scheme selection
+- Test progress bar rendering logic
 
 ---
 
@@ -590,4 +680,4 @@ Session 4/4:  🍅🍅🍅🍅
 
 **Product Owner:** co0p  
 **Status:** Draft  
-**Next Review:** After MVP (Phase 1)
+**Next Review:** After Phase 3 (Visual Feedback)
