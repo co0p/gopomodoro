@@ -14,7 +14,7 @@ const (
 	StatePaused
 
 	defaultDuration = 1500 // 25 minutes in seconds
-	tickInterval    = 1 * time.Second
+	tickInterval    = 10 * time.Second
 )
 
 // Timer manages a countdown timer
@@ -172,7 +172,10 @@ func (t *Timer) tickLoop() {
 				return
 			}
 
-			t.remaining--
+			t.remaining -= 10
+			if t.remaining < 0 {
+				t.remaining = 0
+			}
 			currentRemaining := t.remaining
 
 			// Check for completion

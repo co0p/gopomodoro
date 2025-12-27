@@ -81,10 +81,10 @@ func TestTick(t *testing.T) {
 	})
 
 	// Use short duration for faster testing
-	tmr.Start("work", 3)
+	tmr.Start("work", 25)
 
-	// Wait for a few ticks
-	time.Sleep(2100 * time.Millisecond)
+	// Wait for a few ticks (10-second intervals)
+	time.Sleep(21 * time.Second)
 
 	mu.Lock()
 	count := tickCount
@@ -95,7 +95,7 @@ func TestTick(t *testing.T) {
 		t.Errorf("Expected at least 2 ticks, got %d", count)
 	}
 
-	if last >= 3 {
+	if last >= 25 {
 		t.Errorf("Expected remaining to decrease, got %d", last)
 	}
 }
@@ -128,7 +128,7 @@ func TestPauseAndResume(t *testing.T) {
 		t.Errorf("Expected state to be StateRunning after Resume(), got %v", tmr.GetState())
 	}
 
-	time.Sleep(1100 * time.Millisecond)
+	time.Sleep(11 * time.Second)
 	remainingAfterResume := tmr.GetRemaining()
 
 	if remainingAfterResume >= remainingAfterWait {
@@ -200,10 +200,10 @@ func TestCompletion(t *testing.T) {
 		mu.Unlock()
 	})
 
-	tmr.Start("work", 1)
+	tmr.Start("work", 5)
 
-	// Wait for completion
-	time.Sleep(1200 * time.Millisecond)
+	// Wait for completion (timer ticks every 10 seconds, so 5 seconds means immediate completion)
+	time.Sleep(11 * time.Second)
 
 	mu.Lock()
 	called := completedCalled

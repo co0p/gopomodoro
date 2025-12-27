@@ -15,18 +15,21 @@ import (
 
 // Window represents the dropdown panel
 type Window struct {
-	visible        bool
-	header         *systray.MenuItem
-	timerDisplay   *systray.MenuItem
-	cycleIndicator *systray.MenuItem
-	btnStart       *systray.MenuItem
-	btnPause       *systray.MenuItem
-	btnReset       *systray.MenuItem
-	btnSkip        *systray.MenuItem
-	btnQuit        *systray.MenuItem
-	timer          *timer.Timer
-	session        *session.Session
-	tray           *tray.Tray
+	visible          bool
+	header           *systray.MenuItem
+	timerDisplay     *systray.MenuItem
+	progressBar      *systray.MenuItem
+	cycleIndicator   *systray.MenuItem
+	btnStart         *systray.MenuItem
+	btnPause         *systray.MenuItem
+	btnReset         *systray.MenuItem
+	btnSkip          *systray.MenuItem
+	btnQuit          *systray.MenuItem
+	timer            *timer.Timer
+	session          *session.Session
+	tray             *tray.Tray
+	sessionStartTime time.Time
+	sessionDuration  int
 }
 
 // CreateWindow initializes the dropdown window with placeholder UI
@@ -63,8 +66,11 @@ func (w *Window) InitializeMenu() {
 	w.header = systray.AddMenuItem("Ready", "Current state")
 	w.header.Disable()
 
-	w.timerDisplay = systray.AddMenuItem("25:00", "Timer display")
+	w.timerDisplay = systray.AddMenuItem("25min", "Timer display")
 	w.timerDisplay.Disable()
+
+	w.progressBar = systray.AddMenuItem("○○○○○○○○○○", "Session progress")
+	w.progressBar.Disable()
 
 	w.cycleIndicator = systray.AddMenuItem("Session 1/4  🍅○○○", "Cycle progress")
 	w.cycleIndicator.Disable()
@@ -127,7 +133,17 @@ func (w *Window) handleStartClick() {
 			w.timer.Resume()
 			// Update button states after resume
 			w.UpdateButtonStates(timer.StateRunning)
-			w.header.SetTitle("Running")
+			// Restore session-specific emoji based on current session type
+			switch w.session.CurrentType {
+			case session.TypeWork:
+				w.header.SetTitle("🍅 Work Session")
+			case session.TypeShortBreak:
+				w.header.SetTitle("☕ Short Break")
+			case session.TypeLongBreak:
+				w.header.SetTitle("🌟 Long Break")
+			default:
+				w.header.SetTitle("Running")
+			}
 		}
 	}
 }
@@ -142,7 +158,7 @@ func (w *Window) handlePauseClick() {
 		w.timer.Pause()
 		// Update button states after pause
 		w.UpdateButtonStates(timer.StatePaused)
-		w.header.SetTitle("Paused")
+		w.header.SetTitle("⏸️ Paused")
 	}
 }
 
@@ -156,9 +172,13 @@ func (w *Window) handleResetClick() {
 		w.timer.Reset()
 		// Reset cycle state
 		w.session.Reset()
+		// Reset session tracking
+		w.sessionDuration = 0
+		// Reset progress bar
+		w.progressBar.SetTitle("○○○○○○○○○○")
 		// Update button states and display after reset
 		w.UpdateButtonStates(timer.StateIdle)
-		w.timerDisplay.SetTitle("25:00")
+		w.timerDisplay.SetTitle("25min")
 		w.header.SetTitle("Ready")
 		// Update cycle indicator
 		w.cycleIndicator.SetTitle(w.session.FormatCycleIndicator())
@@ -183,6 +203,9 @@ func (w *Window) handleSkipClick() {
 		// Stop timer
 		w.timer.Reset()
 
+		// Reset progress bar
+		w.progressBar.SetTitle("○○○○○○○○○○")
+
 		// Log as skipped
 		err := storage.LogSession(time.Now(), currentSessionType, "skipped", elapsedMinutes)
 		if err != nil {
@@ -201,11 +224,11 @@ func (w *Window) handleSkipClick() {
 		// Set header based on next session type
 		switch nextSessionType {
 		case session.TypeWork:
-			w.header.SetTitle("Ready for Work")
+			w.header.SetTitle("🍅 Ready for Work")
 		case session.TypeShortBreak:
-			w.header.SetTitle("Ready for Break")
+			w.header.SetTitle("☕ Ready for Break")
 		case session.TypeLongBreak:
-			w.header.SetTitle("Ready for Long Break")
+			w.header.SetTitle("🌟 Ready for Long Break")
 		default:
 			w.header.SetTitle("Ready")
 		}
@@ -230,17 +253,21 @@ func (w *Window) handleQuitClick() {
 func (w *Window) handleTimerStarted(sessionType string, durationSeconds int) {
 	log.Println("[INFO] Timer started")
 
+	// Store session metadata for progress tracking
+	w.sessionStartTime = time.Now()
+	w.sessionDuration = durationSeconds
+
 	// Update current session type
 	w.session.CurrentType = sessionType
 
 	// Set header based on session type
 	switch sessionType {
 	case session.TypeWork:
-		w.header.SetTitle("Work Session")
+		w.header.SetTitle("🍅 Work Session")
 	case session.TypeShortBreak:
-		w.header.SetTitle("Short Break")
+		w.header.SetTitle("☕ Short Break")
 	case session.TypeLongBreak:
-		w.header.SetTitle("Long Break")
+		w.header.SetTitle("🌟 Long Break")
 	default:
 		w.header.SetTitle("Running")
 	}
@@ -262,11 +289,19 @@ func (w *Window) handleTimerStarted(sessionType string, durationSeconds int) {
 func (w *Window) handleTimerTick(remaining int) {
 	timeStr := formatTime(remaining)
 	w.timerDisplay.SetTitle(timeStr)
+
+	// Update progress bar
+	elapsed := w.sessionDuration - remaining
+	progressStr := formatProgressBar(elapsed, w.sessionDuration)
+	w.progressBar.SetTitle(progressStr)
 }
 
 // handleTimerCompleted is called when the timer reaches zero
 func (w *Window) handleTimerCompleted() {
 	log.Println("[INFO] Timer completed")
+
+	// Reset session tracking
+	w.sessionDuration = 0
 
 	// Increment work session counter if completing a work session
 	w.session.IncrementCycle()
@@ -281,11 +316,11 @@ func (w *Window) handleTimerCompleted() {
 	// Set header based on next session type
 	switch nextSessionType {
 	case session.TypeWork:
-		w.header.SetTitle("Ready for Work")
+		w.header.SetTitle("🍅 Ready for Work")
 	case session.TypeShortBreak:
-		w.header.SetTitle("Ready for Break")
+		w.header.SetTitle("☕ Ready for Break")
 	case session.TypeLongBreak:
-		w.header.SetTitle("Ready for Long Break")
+		w.header.SetTitle("🌟 Ready for Long Break")
 	default:
 		w.header.SetTitle("Ready")
 	}
@@ -341,11 +376,31 @@ func (w *Window) updateTrayIcon(state timer.State) {
 	w.tray.UpdateIcon(sessionType, state)
 }
 
-// formatTime converts seconds to MM:SS format
+// formatTime converts seconds to minutes-only format
 func formatTime(seconds int) string {
 	minutes := seconds / 60
-	secs := seconds % 60
-	return fmt.Sprintf("%02d:%02d", minutes, secs)
+	return fmt.Sprintf("%dmin", minutes)
+}
+
+// formatProgressBar generates a 10-segment progress bar using Unicode circles
+func formatProgressBar(elapsed, duration int) string {
+	if duration == 0 {
+		return "○○○○○○○○○○"
+	}
+	fillPercentage := float64(elapsed) / float64(duration)
+	filledSegments := int(fillPercentage * 10)
+	if filledSegments > 10 {
+		filledSegments = 10
+	}
+
+	result := ""
+	for i := 0; i < filledSegments; i++ {
+		result += "●"
+	}
+	for i := filledSegments; i < 10; i++ {
+		result += "○"
+	}
+	return result
 }
 
 // shouldStartBeEnabled returns true if Start button should be enabled

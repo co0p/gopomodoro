@@ -15,18 +15,39 @@ func TestFormatTime(t *testing.T) {
 		seconds  int
 		expected string
 	}{
-		{1500, "25:00"},
-		{1499, "24:59"},
-		{61, "01:01"},
-		{3, "00:03"},
-		{0, "00:00"},
-		{3599, "59:59"},
+		{1500, "25min"},
+		{720, "12min"},
+		{60, "1min"},
+		{59, "0min"},
+		{0, "0min"},
 	}
 
 	for _, tt := range tests {
 		result := formatTime(tt.seconds)
 		if result != tt.expected {
 			t.Errorf("formatTime(%d) = %s; want %s", tt.seconds, result, tt.expected)
+		}
+	}
+}
+
+func TestFormatProgressBar(t *testing.T) {
+	tests := []struct {
+		elapsed  int
+		duration int
+		expected string
+	}{
+		{0, 1500, "○○○○○○○○○○"},    // 0% progress
+		{150, 1500, "●○○○○○○○○○"},  // 10% progress
+		{750, 1500, "●●●●●○○○○○"},  // 50% progress
+		{1500, 1500, "●●●●●●●●●●"}, // 100% progress
+		{1600, 1500, "●●●●●●●●●●"}, // over 100% should cap at 10
+		{0, 0, "○○○○○○○○○○"},       // duration 0 edge case
+	}
+
+	for _, tt := range tests {
+		result := formatProgressBar(tt.elapsed, tt.duration)
+		if result != tt.expected {
+			t.Errorf("formatProgressBar(%d, %d) = %s; want %s", tt.elapsed, tt.duration, result, tt.expected)
 		}
 	}
 }
