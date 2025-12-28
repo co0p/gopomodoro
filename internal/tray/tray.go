@@ -1,15 +1,30 @@
 package tray
 
 import (
+	_ "embed"
+	"fmt"
 	"log"
-	"os"
-	"path/filepath"
 
 	"github.com/co0p/gopomodoro/internal/timer"
 	"github.com/getlantern/systray"
 )
 
 var clickHandler func()
+
+//go:embed assets/icon-idle.png
+var iconIdle []byte
+
+//go:embed assets/icon-work.png
+var iconWork []byte
+
+//go:embed assets/icon-short-break.png
+var iconShortBreak []byte
+
+//go:embed assets/icon-long-break.png
+var iconLongBreak []byte
+
+//go:embed assets/icon-paused.png
+var iconPaused []byte
 
 // Tray manages the system tray icon
 type Tray struct{}
@@ -21,36 +36,67 @@ func New() *Tray {
 
 // UpdateIcon updates the tray icon based on session type and timer state
 func (t *Tray) UpdateIcon(sessionType string, state timer.State) {
-	iconPath := t.getIconPath(sessionType, state)
-	iconData, err := os.ReadFile(filepath.Join("assets", iconPath))
-	if err != nil {
-		log.Printf("[ERROR] Failed to load icon %s: %v", iconPath, err)
-		return
-	}
-
+	iconData := t.getIconData(sessionType, state)
 	systray.SetIcon(iconData)
-	log.Printf("[INFO] Tray icon updated to %s", iconPath)
 }
 
-// getIconPath determines which icon file to use based on session type and state
-func (t *Tray) getIconPath(sessionType string, state timer.State) string {
+// getIconData determines which icon bytes to use based on session type and state
+func (t *Tray) getIconData(sessionType string, state timer.State) []byte {
 	if state == timer.StateRunning {
 		switch sessionType {
 		case "work":
-			return "icon-work.png"
+			return iconWork
 		case "short_break":
-			return "icon-short-break.png"
+			return iconShortBreak
 		case "long_break":
-			return "icon-long-break.png"
+			return iconLongBreak
 		}
 	}
 
 	if state == timer.StatePaused {
-		return "icon-paused.png"
+		return iconPaused
 	}
 
-	// Default to idle icon
-	return "icon-idle.png"
+	// Default to tomato icon (work icon) for idle state
+	return iconWork
+}
+
+// GetEmojiForState returns the appropriate emoji for the current session state
+func (t *Tray) GetEmojiForState(sessionType string, state timer.State) string {
+	// Paused state always shows pause emoji
+	if state == timer.StatePaused {
+		return "⏸️"
+	}
+
+	// Idle or running states - select emoji based on session type
+	switch sessionType {
+	case "short_break":
+		return "☕"
+	case "long_break":
+		return "🌟"
+	default:
+		// Default to tomato (for work and idle)
+		return "🍅"
+	}
+}
+
+// FormatMinutes converts seconds to a formatted minute string
+func (t *Tray) FormatMinutes(seconds int) string {
+	minutes := seconds / 60
+	return fmt.Sprintf("%dm", minutes)
+}
+
+// UpdateDisplay updates both the tray icon and title text with session info
+func (t *Tray) UpdateDisplay(sessionType string, state timer.State, remainingSeconds int) {
+	// Update icon
+	iconData := t.getIconData(sessionType, state)
+	systray.SetIcon(iconData)
+
+	// Update title text with emoji and time
+	emoji := t.GetEmojiForState(sessionType, state)
+	timeStr := t.FormatMinutes(remainingSeconds)
+	title := emoji + " " + timeStr
+	systray.SetTitle(title)
 }
 
 // Initialize sets up the system tray icon
@@ -62,13 +108,12 @@ func Initialize() error {
 // SetIcon updates the tray icon image
 func SetIcon(iconData []byte) error {
 	systray.SetIcon(iconData)
-	log.Printf("[INFO] Tray icon set (%d bytes)", len(iconData))
 	return nil
 }
 
-// LoadIconFromAssets loads the default icon from the assets directory
+// LoadIconFromAssets loads the default icon from embedded assets
 func LoadIconFromAssets() ([]byte, error) {
-	return os.ReadFile(filepath.Join("assets", "icon-idle.png"))
+	return iconIdle, nil
 }
 
 // OnClick registers a callback for tray icon clicks

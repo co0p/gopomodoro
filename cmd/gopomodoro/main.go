@@ -4,10 +4,11 @@ import (
 	"flag"
 	"log"
 
+	"github.com/benbjohnson/clock"
+	"github.com/co0p/gopomodoro/internal/adapters/ui"
+	"github.com/co0p/gopomodoro/internal/pomodoro"
 	"github.com/co0p/gopomodoro/internal/storage"
-	"github.com/co0p/gopomodoro/internal/timer"
 	"github.com/co0p/gopomodoro/internal/tray"
-	"github.com/co0p/gopomodoro/internal/ui"
 	"github.com/getlantern/systray"
 )
 
@@ -56,40 +57,33 @@ func onReady() {
 	}
 
 	systray.SetTooltip("GoPomodoro")
+	systray.SetTitle("🍅 25m")
 	log.Println("[INFO] Tray icon initialized successfully")
 
-	// Create UI window
-	window, err := ui.CreateWindow()
-	if err != nil {
-		log.Fatalf("[ERROR] Failed to create window: %v", err)
-	}
+	// Create infrastructure adapters
+	clk := clock.New()
+	fileStorage := storage.NewFileStorage()
+	log.Println("[INFO] Infrastructure adapters created")
 
-	// Initialize menu items (systray menu approach)
-	window.InitializeMenu()
-	log.Println("[INFO] Dropdown window created")
+	// Create core service
+	service := pomodoro.NewService(clk, fileStorage, nil)
+	log.Println("[INFO] Pomodoro service created")
 
-	// Create and wire timer
-	tmr := timer.New()
-	log.Println("[INFO] Timer created")
-
-	// Create tray instance
+	// Create tray instance for UI updates
 	trayInstance := tray.New()
 	log.Println("[INFO] Tray instance created")
 
-	// Set timer in window (this registers event handlers and starts click handlers)
-	window.SetTimer(tmr)
-	log.Println("[INFO] Timer wired to UI")
+	// Create UI adapter
+	uiAdapter := ui.NewSystrayAdapter(service, trayInstance)
+	log.Println("[INFO] UI adapter created")
 
-	// Set tray in window for icon updates
-	window.SetTray(trayInstance)
-	log.Println("[INFO] Tray wired to UI")
+	// Wire UI as notifier
+	service.SetNotifier(uiAdapter)
+	log.Println("[INFO] UI adapter wired as notifier")
 
-	// Update button states to enable Start button
-	window.UpdateButtonStates(tmr.GetState())
-	log.Println("[INFO] Button states initialized")
-
-	// For systray menu approach, menu is always "ready" to show
-	// No explicit click handler needed - systray manages menu display
+	// Initialize menu
+	uiAdapter.InitializeMenu()
+	log.Println("[INFO] Systray menu initialized")
 
 	if *smokeTest {
 		log.Println("[INFO] Smoke test - quitting after initialization")

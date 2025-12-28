@@ -8,6 +8,8 @@ import (
 	"sync"
 	"testing"
 	"time"
+
+	"github.com/benbjohnson/clock"
 )
 
 func TestNew(t *testing.T) {
@@ -68,7 +70,8 @@ func TestStart(t *testing.T) {
 }
 
 func TestTick(t *testing.T) {
-	tmr := New()
+	mock := clock.NewMock()
+	tmr := NewWithClock(mock)
 
 	var mu sync.Mutex
 	tickCount := 0
@@ -83,8 +86,11 @@ func TestTick(t *testing.T) {
 	// Use short duration for faster testing
 	tmr.Start("work", 25)
 
-	// Wait for a few ticks (10-second intervals)
-	time.Sleep(21 * time.Second)
+	// Advance time by 21 seconds (2 ticks at 10-second intervals)
+	mock.Add(21 * time.Second)
+
+	// Give goroutine time to process
+	time.Sleep(10 * time.Millisecond)
 
 	mu.Lock()
 	count := tickCount
@@ -101,11 +107,13 @@ func TestTick(t *testing.T) {
 }
 
 func TestPauseAndResume(t *testing.T) {
-	tmr := New()
+	mock := clock.NewMock()
+	tmr := NewWithClock(mock)
 
-	tmr.Start("work", 10)
+	tmr.Start("work", 30)
 
-	time.Sleep(100 * time.Millisecond)
+	// Give goroutine time to start
+	time.Sleep(10 * time.Millisecond)
 
 	tmr.Pause()
 
@@ -114,7 +122,11 @@ func TestPauseAndResume(t *testing.T) {
 	}
 
 	remainingAfterPause := tmr.GetRemaining()
-	time.Sleep(1100 * time.Millisecond)
+
+	// Advance time while paused - timer shouldn't change
+	mock.Add(20 * time.Second)
+	time.Sleep(10 * time.Millisecond)
+
 	remainingAfterWait := tmr.GetRemaining()
 
 	if remainingAfterPause != remainingAfterWait {
@@ -128,7 +140,10 @@ func TestPauseAndResume(t *testing.T) {
 		t.Errorf("Expected state to be StateRunning after Resume(), got %v", tmr.GetState())
 	}
 
-	time.Sleep(11 * time.Second)
+	// Advance time after resume - timer should tick
+	mock.Add(11 * time.Second)
+	time.Sleep(10 * time.Millisecond)
+
 	remainingAfterResume := tmr.GetRemaining()
 
 	if remainingAfterResume >= remainingAfterWait {
@@ -137,10 +152,11 @@ func TestPauseAndResume(t *testing.T) {
 }
 
 func TestReset(t *testing.T) {
-	tmr := New()
+	mock := clock.NewMock()
+	tmr := NewWithClock(mock)
 
 	tmr.Start("work", 1500)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	tmr.Reset()
 
@@ -154,7 +170,7 @@ func TestReset(t *testing.T) {
 
 	// Reset from paused state
 	tmr.Start("work", 1500)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 	tmr.Pause()
 	tmr.Reset()
 
@@ -164,10 +180,11 @@ func TestReset(t *testing.T) {
 }
 
 func TestReset_ClearsSessionType(t *testing.T) {
-	tmr := New()
+	mock := clock.NewMock()
+	tmr := NewWithClock(mock)
 
 	tmr.Start("work", 1500)
-	time.Sleep(100 * time.Millisecond)
+	time.Sleep(10 * time.Millisecond)
 
 	tmr.Reset()
 
@@ -185,7 +202,8 @@ func TestReset_ClearsSessionType(t *testing.T) {
 }
 
 func TestCompletion(t *testing.T) {
-	tmr := New()
+	mock := clock.NewMock()
+	tmr := NewWithClock(mock)
 
 	// Set remaining to 1 for quick completion
 	tmr.mu.Lock()
@@ -202,8 +220,11 @@ func TestCompletion(t *testing.T) {
 
 	tmr.Start("work", 5)
 
-	// Wait for completion (timer ticks every 10 seconds, so 5 seconds means immediate completion)
-	time.Sleep(11 * time.Second)
+	// Advance time to trigger completion
+	mock.Add(11 * time.Second)
+
+	// Give goroutine time to process
+	time.Sleep(50 * time.Millisecond)
 
 	mu.Lock()
 	called := completedCalled
@@ -273,5 +294,42 @@ func TestOnStarted_CallbackReceivesSessionContext(t *testing.T) {
 
 	if duration != 1500 {
 		t.Errorf("Expected callback to receive duration 1500, got %d", duration)
+	}
+}
+
+func TestTimingAccuracy(t *testing.T) {
+	mock := clock.NewMock()
+	tmr := NewWithClock(mock)
+
+	var mu sync.Mutex
+	completedCalled := false
+	tmr.OnCompleted(func() {
+		mu.Lock()
+		completedCalled = true
+		mu.Unlock()
+	})
+
+	tmr.Start("work", 60)
+
+	// Advance time by 60 seconds (6 ticks at 10-second intervals)
+	mock.Add(60 * time.Second)
+
+	// Give goroutine time to process
+	time.Sleep(50 * time.Millisecond)
+
+	mu.Lock()
+	called := completedCalled
+	mu.Unlock()
+
+	if !called {
+		t.Error("Expected timer to complete after 60 seconds")
+	}
+
+	if tmr.GetState() != StateIdle {
+		t.Errorf("Expected state to be StateIdle after completion, got %v", tmr.GetState())
+	}
+
+	if tmr.GetRemaining() != 0 {
+		t.Errorf("Expected remaining to be 0 after completion, got %d", tmr.GetRemaining())
 	}
 }

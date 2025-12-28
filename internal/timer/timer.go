@@ -1,8 +1,11 @@
 package timer
 
 import (
+	"log"
 	"sync"
 	"time"
+
+	"github.com/benbjohnson/clock"
 )
 
 // State represents the current state of the timer
@@ -23,19 +26,26 @@ type Timer struct {
 	state       State
 	sessionType string
 	remaining   int
-	ticker      *time.Ticker
+	ticker      *clock.Ticker
 	stopChan    chan bool
 	onStarted   func(string, int)
 	onTick      func(int)
 	onCompleted func()
+	clock       clock.Clock
 }
 
 // New creates a new Timer initialized to idle state with 25 minutes
 func New() *Timer {
+	return NewWithClock(clock.New())
+}
+
+// NewWithClock creates a new Timer with a custom clock (for testing)
+func NewWithClock(clk clock.Clock) *Timer {
 	return &Timer{
 		state:     StateIdle,
 		remaining: defaultDuration,
 		stopChan:  make(chan bool, 1),
+		clock:     clk,
 	}
 }
 
@@ -84,10 +94,10 @@ func (t *Timer) OnCompleted(handler func()) {
 // Start begins the timer countdown with the specified session type and duration
 func (t *Timer) Start(sessionType string, durationSeconds int) {
 	t.mu.Lock()
-	defer t.mu.Unlock()
 
 	// Only start if currently idle (no-op otherwise)
 	if t.state != StateIdle {
+		t.mu.Unlock()
 		return
 	}
 
@@ -96,23 +106,31 @@ func (t *Timer) Start(sessionType string, durationSeconds int) {
 	t.state = StateRunning
 	t.startTicker()
 
-	if t.onStarted != nil {
-		t.onStarted(sessionType, durationSeconds)
+	callback := t.onStarted
+	t.mu.Unlock()
+
+	// Call callback without lock to avoid deadlock
+	if callback != nil {
+		callback(sessionType, durationSeconds)
 	}
 }
 
 // Pause pauses the timer
 func (t *Timer) Pause() {
+	log.Printf("[DEBUG] Pause() called, current state: %v", t.state)
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
 	// Only pause if currently running
 	if t.state != StateRunning {
+		log.Printf("[DEBUG] Pause() no-op: state is %v, not StateRunning", t.state)
 		return
 	}
 
+	log.Println("[DEBUG] Stopping ticker...")
 	t.stopTicker()
 	t.state = StatePaused
+	log.Println("[DEBUG] State set to StatePaused")
 }
 
 // Resume resumes the timer from paused state
@@ -129,8 +147,8 @@ func (t *Timer) Resume() {
 	t.startTicker()
 }
 
-// Reset resets the timer to idle state
-func (t *Timer) Reset() {
+// Stop stops the timer and resets to idle state
+func (t *Timer) Stop() {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 
@@ -140,9 +158,16 @@ func (t *Timer) Reset() {
 	t.remaining = 0
 }
 
+// Reset resets the timer to idle state (alias for Stop)
+func (t *Timer) Reset() {
+	t.Stop()
+}
+
 // startTicker starts the ticker goroutine (must be called with lock held)
 func (t *Timer) startTicker() {
-	t.ticker = time.NewTicker(tickInterval)
+	// Recreate stop channel to ensure clean state
+	t.stopChan = make(chan bool, 1)
+	t.ticker = t.clock.Ticker(tickInterval)
 	go t.tickLoop()
 }
 
@@ -150,16 +175,30 @@ func (t *Timer) startTicker() {
 func (t *Timer) stopTicker() {
 	if t.ticker != nil {
 		t.ticker.Stop()
-		t.stopChan <- true
+		// Non-blocking send to stop channel
+		select {
+		case t.stopChan <- true:
+		default:
+			// Channel full or goroutine already stopped, that's fine
+		}
 		t.ticker = nil
 	}
 }
 
 // tickLoop runs the ticker loop in a goroutine
 func (t *Timer) tickLoop() {
+	// Safety check: ensure ticker is valid
+	t.mu.Lock()
+	if t.ticker == nil {
+		t.mu.Unlock()
+		return
+	}
+	tickerC := t.ticker.C
+	t.mu.Unlock()
+
 	for {
 		select {
-		case _, ok := <-t.ticker.C:
+		case _, ok := <-tickerC:
 			if !ok {
 				// Ticker was closed
 				return

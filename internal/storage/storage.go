@@ -11,6 +11,23 @@ const (
 	csvHeader   = "timestamp,session_type,event,duration_minutes"
 )
 
+// FileStorage implements the Storage interface for CSV file persistence
+type FileStorage struct {
+	logPath string
+}
+
+// NewFileStorage creates a new FileStorage instance
+func NewFileStorage() *FileStorage {
+	return &FileStorage{
+		logPath: getSessionsLogPath(),
+	}
+}
+
+// LogSession implements the Storage interface
+func (fs *FileStorage) LogSession(timestamp time.Time, sessionType, status string, duration int) error {
+	return logSessionToPath(fs.logPath, timestamp, sessionType, status, duration)
+}
+
 // EnsureDataDir creates the data directory if it doesn't exist
 func EnsureDataDir() error {
 	dataDir := getDataDir()
@@ -20,7 +37,7 @@ func EnsureDataDir() error {
 	return nil
 }
 
-// LogSession logs a session event to the CSV file
+// LogSession logs a session event to the CSV file (kept for backward compatibility)
 func LogSession(timestamp time.Time, sessionType, event string, durationMinutes int) error {
 	logPath := getSessionsLogPath()
 	return logSessionToPath(logPath, timestamp, sessionType, event, durationMinutes)
