@@ -5,10 +5,11 @@
 ### Layering (Hexagonal Architecture)
 
 - Core domain in `internal/domain/` — pure timer logic, no infrastructure dependencies
-- Ports (interfaces) in `internal/ports/` — define boundaries (TimerDriver, Clock)
-- Adapters in `internal/adapters/` — tray UI, real clock, test driver
-- Entry point in `cmd/gopomodoro/`
-- Domain MUST NOT import adapters; adapters depend on ports
+- Interfaces defined at consumer (Go-idiomatic) — e.g., `app.TrayUI` in `internal/app/`
+- Adapters in `internal/adapters/<name>/` — implementations in subfolders
+- App composition root in `internal/app/` — wires adapters to domain
+- Entry point in `cmd/gopomodoro/` — minimal, just calls `app.Run()`
+- Domain MUST NOT import adapters; adapters implicitly satisfy consumer interfaces
 
 ### Error Handling
 
