@@ -3,14 +3,18 @@ package main
 import (
 	"log"
 
-	"github.com/co0p/gopomodoro/internal/adapters/systray"
-	"github.com/co0p/gopomodoro/internal/app"
+	gopomodoro "github.com/co0p/gopomodoro/pkg"
+	"github.com/co0p/gopomodoro/pkg/ticker"
+	"github.com/co0p/gopomodoro/pkg/tray"
 )
 
 func main() {
-	tray := systray.New()
-	application := app.New(tray)
-	if err := application.Run(); err != nil {
+	t := ticker.New()
+	c := &gopomodoro.Cycle{Ticker: t}
+	tr := tray.New(c)
+	c.Observer = tr
+
+	if err := tr.Run(); err != nil {
 		log.Fatal(err)
 	}
 }

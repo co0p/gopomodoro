@@ -2,14 +2,12 @@
 
 ## Architectural Decisions
 
-### Layering (Hexagonal Architecture)
+### Package Layout
 
-- Core domain in `internal/domain/` — pure timer logic, no infrastructure dependencies
-- Interfaces defined at consumer (Go-idiomatic) — e.g., `app.TrayUI` in `internal/app/`
-- Adapters in `internal/adapters/<name>/` — implementations in subfolders
-- App composition root in `internal/app/` — wires adapters to domain
-- Entry point in `cmd/gopomodoro/` — minimal, just calls `app.Run()`
-- Domain MUST NOT import adapters; adapters implicitly satisfy consumer interfaces
+- `pkg/` — Core domain: Cycle, Ticker interface, state machine
+- `pkg/tray/` — System tray implementation (getlantern/systray)
+- `pkg/ticker/` — Real ticker implementation (time.Ticker)
+- `cmd/gopomodoro/` — Entry point, wires dependencies
 
 ### Error Handling
 
@@ -26,16 +24,38 @@
 
 ### Dependencies
 
+**Direction:**
+- Domain layer (`pkg/`) has zero imports
+- Domain defines interfaces (Ticker, CycleObserver)
+- Adapters (`pkg/tray/`, `pkg/ticker/`) import and implement domain interfaces
+- Main (`cmd/`) wires concrete implementations together
+- This prevents cyclic dependencies through dependency inversion
+
+**Abstractions:**
 - Clock abstracted via port interface (enables testing)
 - UI abstracted via driver interface (enables test driver)
 - No direct third-party imports in domain layer
 
+### Construction Patterns
+
+- Prefer public fields with direct struct construction: `Cycle{Ticker: t, Observer: o}`
+- Avoid constructors and setter methods unless validation is needed
+- Wiring happens in `main()`, not in constructors
+- This is idiomatic Go: simple, explicit, testable
+
 ## Testing Expectations
 
 - Test location: Colocated (`*_test.go` next to implementation)
+- Test package: Black-box testing via `package <name>_test` (tests only access exported API)
 - Coverage: State transitions must be tested; startup must be tested
 - Test driver: Implements same interface as UI, exercises domain through ports
 - Mocking: Clock mocked for deterministic tests; real clock only in adapters
+
+### Test Helpers
+
+- Mock implementations: `pkg/testing/` subdirectory
+- Keeps test files focused on behavior, not mock boilerplate
+- Mocks implement domain interfaces (e.g., MockTicker, MockObserver)
 
 ## Artifact Layout
 
