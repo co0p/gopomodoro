@@ -12,21 +12,20 @@ type Formatter struct{}
 func (f *Formatter) Format(state gopomodoro.CycleState, remaining time.Duration) string {
 	const tomatoIcon = "🍅"
 	const coffeeIcon = "☕"
+	const longBreakIcon = "🌴"
+
+	minutes := fmt.Sprintf("%d", int(remaining.Minutes()))
 
 	switch state {
-	case gopomodoro.Idle:
-		return tomatoIcon
 	case gopomodoro.Pomodoro:
-		minutes := int(remaining.Minutes())
-		return tomatoIcon + " " + formatMinutes(minutes) + "m"
+		return tomatoIcon + " " + minutes + "m"
 	case gopomodoro.ShortBreak:
-		minutes := int(remaining.Minutes())
-		return coffeeIcon + " " + formatMinutes(minutes) + "m"
+		return coffeeIcon + " " + minutes + "m"
+	case gopomodoro.LongBreak:
+		return longBreakIcon + " " + minutes + "m"
+	case gopomodoro.Idle:
+		fallthrough
 	default:
 		return tomatoIcon
 	}
-}
-
-func formatMinutes(minutes int) string {
-	return fmt.Sprintf("%d", minutes)
 }

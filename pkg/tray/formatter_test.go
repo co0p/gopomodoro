@@ -40,3 +40,14 @@ func TestTray_GivenShortBreakRunning_WhenDisplayed_ThenShowsCoffeeIconWithMinute
 		t.Fatalf("expected %q, got %q", expected, result)
 	}
 }
+
+func TestTray_GivenLongBreakRunning_WhenDisplayed_ThenShowsPalmTreeIconWithMinutes(t *testing.T) {
+	formatter := tray.Formatter{}
+
+	result := formatter.Format(gopomodoro.LongBreak, 15*time.Minute)
+
+	expected := "🌴 15m"
+	if result != expected {
+		t.Fatalf("expected %q, got %q", expected, result)
+	}
+}

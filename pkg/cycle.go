@@ -9,6 +9,7 @@ type CycleState int
 const (
 	Idle       CycleState = 0
 	ShortBreak CycleState = 5
+	LongBreak  CycleState = 15
 	Pomodoro   CycleState = 25
 )
 
@@ -29,6 +30,8 @@ type Cycle struct {
 	TimeLeft time.Duration
 	Ticker   Ticker
 	Observer CycleObserver
+
+	pomodoroCount int
 }
 
 func (c *Cycle) Is(s CycleState) bool {
@@ -60,6 +63,7 @@ func (c *Cycle) Start() {
 func (c *Cycle) Stop() {
 	c.State = Idle
 	c.TimeLeft = 0
+	c.pomodoroCount = 0
 	c.notifyStateChanged()
 	if c.Ticker != nil {
 		c.Ticker.Stop()
@@ -75,16 +79,27 @@ func (c *Cycle) Tick() {
 	case Pomodoro:
 		c.TimeLeft -= time.Minute
 		if c.TimeLeft <= 0 {
-			c.State = ShortBreak
-			c.TimeLeft = time.Duration(ShortBreak) * time.Minute
+			c.pomodoroCount++
+			if c.pomodoroCount >= 4 {
+				c.State = LongBreak
+				c.TimeLeft = time.Duration(LongBreak) * time.Minute
+			} else {
+				c.State = ShortBreak
+				c.TimeLeft = time.Duration(ShortBreak) * time.Minute
+			}
 		}
-		c.notifyStateChanged()
 	case ShortBreak:
+		c.TimeLeft -= time.Minute
+		if c.TimeLeft <= 0 {
+			c.State = Pomodoro
+			c.TimeLeft = time.Duration(Pomodoro) * time.Minute
+		}
+	case LongBreak:
 		c.TimeLeft -= time.Minute
 		if c.TimeLeft <= 0 {
 			c.Stop()
 			return
 		}
-		c.notifyStateChanged()
 	}
+	c.notifyStateChanged()
 }

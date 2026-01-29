@@ -79,7 +79,7 @@ func TestCycle_GivenPomodoroRunning_WhenTimerReachesZero_ThenShortBreakStarts(t 
 	}
 }
 
-func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *testing.T) {
+func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenNextPomodoroStarts(t *testing.T) {
 	c := &gopomodoro.Cycle{
 		State:    gopomodoro.ShortBreak,
 		TimeLeft: 5 * time.Minute,
@@ -90,12 +90,13 @@ func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *
 		c.Tick()
 	}
 
-	if !c.Is(gopomodoro.Idle) {
-		t.Fatalf("expected cycle to be Idle, got %v", c.State)
+	if !c.Is(gopomodoro.Pomodoro) {
+		t.Fatalf("expected cycle to automatically start next Pomodoro, got %v", c.State)
 	}
 
-	if c.Remaining() != 0 {
-		t.Fatalf("expected 0 remaining, got %v", c.Remaining())
+	expected := 25 * time.Minute
+	if c.Remaining() != expected {
+		t.Fatalf("expected %v remaining, got %v", expected, c.Remaining())
 	}
 }
 
@@ -184,5 +185,116 @@ func TestTickerFireTriggersTickAndNotifiesObserver(t *testing.T) {
 	}
 	if observer.StateChanges[1] != gopomodoro.Pomodoro {
 		t.Errorf("expected second state change to Pomodoro, got %v", observer.StateChanges[1])
+	}
+}
+
+func TestCycle_Given3CompletedPomodoros_When4thCompletes_ThenLongBreakStarts(t *testing.T) {
+	c := &gopomodoro.Cycle{}
+
+	// Complete 4 pomodoros (each followed by a break, except the 4th)
+	for i := 0; i < 4; i++ {
+		c.Start()
+		// Tick through full pomodoro
+		for j := 0; j < int(gopomodoro.Pomodoro); j++ {
+			c.Tick()
+		}
+
+		// After 1st, 2nd, 3rd pomodoro: should be in short break
+		if i < 3 {
+			if !c.Is(gopomodoro.ShortBreak) {
+				t.Fatalf("pomodoro %d: expected ShortBreak, got %v", i+1, c.State)
+			}
+			// Complete the short break - should auto-start next pomodoro
+			for j := 0; j < int(gopomodoro.ShortBreak); j++ {
+				c.Tick()
+			}
+			// Should automatically start next Pomodoro
+			if !c.Is(gopomodoro.Pomodoro) {
+				t.Fatalf("after break %d: expected Pomodoro to auto-start, got %v", i+1, c.State)
+			}
+		}
+	}
+
+	// After 4th pomodoro completes, should be in LongBreak
+	if !c.Is(gopomodoro.LongBreak) {
+		t.Fatalf("expected LongBreak after 4th pomodoro, got %v", c.State)
+	}
+
+	expected := 15 * time.Minute
+	if c.Remaining() != expected {
+		t.Fatalf("expected %v remaining in long break, got %v", expected, c.Remaining())
+	}
+}
+
+func TestCycle_GivenLongBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *testing.T) {
+	c := &gopomodoro.Cycle{
+		State:    gopomodoro.LongBreak,
+		TimeLeft: 15 * time.Minute,
+	}
+
+	// Tick through all long break minutes
+	for i := 0; i < int(gopomodoro.LongBreak); i++ {
+		c.Tick()
+	}
+
+	if !c.Is(gopomodoro.Idle) {
+		t.Fatalf("expected cycle to be Idle, got %v", c.State)
+	}
+
+	if c.Remaining() != 0 {
+		t.Fatalf("expected 0 remaining, got %v", c.Remaining())
+	}
+}
+
+func TestCycle_GivenLongBreakRunning_WhenStopClicked_ThenReturnsToIdle(t *testing.T) {
+	c := &gopomodoro.Cycle{
+		State:    gopomodoro.LongBreak,
+		TimeLeft: 10 * time.Minute,
+	}
+
+	c.Stop()
+
+	if !c.Is(gopomodoro.Idle) {
+		t.Fatalf("expected cycle to be Idle, got %v", c.State)
+	}
+
+	if c.Remaining() != 0 {
+		t.Fatalf("expected 0 remaining, got %v", c.Remaining())
+	}
+}
+
+func TestCycle_GivenPomodoroRunning_WhenStopClicked_ThenCounterResets(t *testing.T) {
+	c := &gopomodoro.Cycle{}
+
+	// Complete 2 pomodoros to increment counter
+	for i := 0; i < 2; i++ {
+		c.Start()
+		// Tick through full pomodoro
+		for j := 0; j < int(gopomodoro.Pomodoro); j++ {
+			c.Tick()
+		}
+		// Complete short break
+		for j := 0; j < int(gopomodoro.ShortBreak); j++ {
+			c.Tick()
+		}
+	}
+
+	// Start 3rd pomodoro and stop it mid-way
+	c.Start()
+	for j := 0; j < 10; j++ {
+		c.Tick()
+	}
+
+	c.Stop()
+
+	// Start a new pomodoro and complete it
+	c.Start()
+	for j := 0; j < int(gopomodoro.Pomodoro); j++ {
+		c.Tick()
+	}
+
+	// Should be in ShortBreak (counter was reset, so this is the 1st pomodoro)
+	if !c.Is(gopomodoro.ShortBreak) {
+		t.Fatalf("expected ShortBreak after first pomodoro (counter reset), got %v", c.State)
 	}
 }
