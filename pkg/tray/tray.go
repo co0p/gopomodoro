@@ -1,8 +1,6 @@
 package tray
 
 import (
-	"fmt"
-
 	gopomodoro "github.com/co0p/gopomodoro/pkg"
 	"github.com/getlantern/systray"
 )
@@ -19,12 +17,8 @@ func New(c *gopomodoro.Cycle) *Tray {
 
 // OnStateChanged updates the tray display when the cycle state changes.
 func (t *Tray) OnStateChanged(state gopomodoro.CycleState) {
-	switch state {
-	case gopomodoro.Idle:
-		systray.SetTitle("🍅")
-	case gopomodoro.Pomodoro:
-		systray.SetTitle(fmt.Sprintf("🍅 %d", t.cycle.RemainingMinutes()))
-	}
+	formatter := &Formatter{}
+	systray.SetTitle(formatter.Format(state, t.cycle.Remaining()))
 }
 
 // Run starts the systray. Blocks until quit.

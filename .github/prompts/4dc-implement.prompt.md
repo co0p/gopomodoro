@@ -2,8 +2,8 @@
 name: 4dc-implement
 title: Guide TDD implementation of deliverables
 description: Guide user through Red-Green-Refactor cycles, one deliverable at a time
-version: 120dfb7
-generatedAt: 2026-01-27T08:32:13Z
+version: 6ef364d
+generatedAt: 2026-01-29T17:04:13Z
 source: https://github.com/co0p/4dc
 ---
 
@@ -80,7 +80,30 @@ The implement session must:
    - Ask: "Which deliverable are we working on?"
    - If continuing: Check what's already implemented.
 
-2. **Review Context**
+2. **Initialize Learnings File**
+
+   If `.4dc/current/learnings.md` does not exist, create it:
+
+   ```markdown
+   # Learnings from [Increment Title]
+
+   ## CONSTITUTION Updates
+   (none yet)
+
+   ## DESIGN.md Updates  
+   (none yet)
+
+   ## ADRs to Create
+   (none yet)
+
+   ## API Contracts to Add
+   (none yet)
+
+   ## Backlog Items
+   (none yet)
+   ```
+
+3. **Review Context**
 
    - Check `CONSTITUTION.md` for relevant decisions.
    - Review existing code structure.
@@ -88,7 +111,7 @@ The implement session must:
 
 ### TDD Cycle (Repeat for Each Test)
 
-3. **Suggest Next Test → STOP**
+4. **Suggest Next Test → STOP**
 
    Propose the next smallest test:
    - "What's the first/next test for [deliverable]?"
@@ -96,7 +119,7 @@ The implement session must:
    
    Wait for user to write the test and show the result.
 
-4. **Verify Red Phase → STOP**
+5. **Verify Red Phase → STOP**
 
    When user shows a failing test, ask:
    - "Is this failing for the right reason?"
@@ -106,7 +129,7 @@ The implement session must:
    
    Wait for user confirmation before proceeding.
 
-5. **Guide Green Phase → STOP**
+6. **Guide Green Phase → STOP**
 
    When red phase is confirmed, ask:
    - "What's the simplest implementation that makes this pass?"
@@ -116,7 +139,7 @@ The implement session must:
    
    Wait for user to implement and show green result.
 
-6. **Suggest Refactorings → STOP**
+7. **Suggest Refactorings → STOP**
 
    When tests are green, ask:
    - "With tests green, what smells bad?"
@@ -130,7 +153,7 @@ The implement session must:
    
    Wait for user decision and any refactoring.
 
-7. **Verify Still Green**
+8. **Verify Still Green**
 
    After any refactoring:
    - "Do all tests still pass?"
@@ -138,60 +161,78 @@ The implement session must:
 
 ### Promotion Checks (Every 5-10 Cycles)
 
-8. **Ask About Discoveries**
+9. **Ask About Discoveries**
 
    Every 5-10 TDD cycles, pause and ask:
    - "Have we discovered any architectural decisions?"
+   - "Have we discovered any patterns that should go in DESIGN.md?"
    - "Have we discovered any API contracts?"
    - "Is there anything that surprised us or was harder than expected?"
    - "Should any of this go in CONSTITUTION.md or become an ADR?"
 
-9. **Capture Learnings**
+10. **Write Learnings to File**
 
-   If user identifies learnings, append to `.4dc/current/learnings.md`:
+    When user identifies a learning, **immediately write it** to `.4dc/current/learnings.md`:
 
-   ```markdown
-   ## CONSTITUTION Updates
-   - [ ] Decision description
-         Section: where it belongs
+    For CONSTITUTION updates, add under `## CONSTITUTION Updates`:
+    ```markdown
+    - [ ] [Decision description]
+          Section: [where it belongs in CONSTITUTION.md]
+    ```
 
-   ## ADRs to Create
-   - [ ] Decision description
-         Rationale: why it matters
+    For DESIGN.md updates, add under `## DESIGN.md Updates`:
+    ```markdown
+    - [ ] [Pattern that emerged]
+          Context: [what tests/code revealed this]
+    ```
 
-   ## API Contracts to Add
-   - [ ] Contract description
-         File: [per CONSTITUTION.md artifact layout]
+    For ADRs, add under `## ADRs to Create`:
+    ```markdown
+    - [ ] [Decision description]
+          Rationale: [why it matters]
+    ```
 
-   ## Backlog Items
-   - [ ] Future work description
-   ```
+    For API contracts, add under `## API Contracts to Add`:
+    ```markdown
+    - [ ] [Contract description]
+          File: [per CONSTITUTION.md artifact layout]
+    ```
+
+    For backlog items, add under `## Backlog Items`:
+    ```markdown
+    - [ ] [Future work description]
+          Context: [why this came up]
+    ```
+
+    **Do not wait until end of session.** Write learnings as they are discovered.
 
 ### Completing a Deliverable
 
-10. **Check Deliverable Completion**
+11. **Check Deliverable Completion**
 
     When tests cover the deliverable's criteria, ask:
     - "Is this deliverable shippable?"
     - "Does it meet the acceptance criteria from increment.md?"
     - "What did we learn that wasn't obvious when we started?"
 
-11. **Transition to Next Deliverable**
+    **Write any final learnings to `.4dc/current/learnings.md` now.**
+
+12. **Transition to Next Deliverable**
 
     Before starting the next deliverable:
     - Summarize learnings from this deliverable.
     - Ask: "How does this inform how we approach the next deliverable?"
-    - Update `.4dc/current/notes.md` with session observations.
+    - Confirm learnings.md is up to date.
 
 ### Session End
 
-12. **Summarize Progress**
+13. **Summarize Progress**
 
     At end of session:
     - Summarize what was implemented.
     - Note any incomplete work.
-    - Update `.4dc/current/notes.md` for next session.
-    - Remind about `.4dc/current/learnings.md` for promote prompt.
+    - **Read back `.4dc/current/learnings.md`** to confirm all discoveries are captured.
+    - Remind: "Run promote prompt before merging."
 
 ---
 
@@ -221,13 +262,14 @@ The implement session must:
 
 6. Every 5-10 cycles: Promotion check
    Q: "Discovered any architectural decisions?"
+   Q: "Any patterns for DESIGN.md?"
    Q: "Any API contracts?"
-   → Append to learnings.md if yes
+   → WRITE to learnings.md immediately (don't wait)
 
 7. Deliverable complete?
    Q: "Is this shippable?"
    Q: "What did we learn for next deliverable?"
-   → Move to next deliverable or end session
+   → Write final learnings, then move to next deliverable
 ```
 
 ---
@@ -240,6 +282,10 @@ The implement session must:
 ## CONSTITUTION Updates
 - [ ] Decision description
       Section: where it belongs in CONSTITUTION.md
+
+## DESIGN.md Updates
+- [ ] Pattern or structure that emerged
+      Context: what tests/implementation revealed this
 
 ## ADRs to Create  
 - [ ] Decision description

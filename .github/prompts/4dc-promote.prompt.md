@@ -2,8 +2,8 @@
 name: 4dc-promote
 title: Promote learnings to permanent documentation
 description: Before merging, ensure important learnings become permanent docs, then delete working context
-version: 120dfb7
-generatedAt: 2026-01-27T08:32:13Z
+version: 6ef364d
+generatedAt: 2026-01-29T17:04:13Z
 source: https://github.com/co0p/4dc
 ---
 
@@ -62,6 +62,7 @@ For each learning in `learnings.md`:
 
 **Outputs:**
 - Updates to `CONSTITUTION.md` (if architectural decisions)
+- Updates to `DESIGN.md` (emergent architecture documentation)
 - New ADRs (location per CONSTITUTION.md artifact layout)
 - New API contracts (location per CONSTITUTION.md artifact layout)
 - Updates to `README.md` (if project scope changed)
@@ -123,7 +124,15 @@ For each learning in `learnings.md`:
    
    → If yes: Draft README section addition.
 
-   **Question 5: Is this a backlog item?**
+   **Question 5: Should this update DESIGN.md?**
+   - Did a new architectural pattern emerge from TDD?
+   - Did the module/package structure evolve?
+   - Are there design decisions that emerged (not planned upfront)?
+   - Would this help future developers understand the "why" behind the structure?
+   
+   → If yes: Draft addition to DESIGN.md (see DESIGN.md Template below).
+
+   **Question 6: Is this a backlog item?**
    - Future work not ready to commit?
    - Nice-to-have improvement?
    - Technical debt to address later?
@@ -223,6 +232,48 @@ For each learning in `learnings.md`:
 
 ---
 
+## DESIGN.md Template
+
+The `DESIGN.md` file documents **emergent architecture**—patterns and structures that emerged through TDD, not planned upfront. It evolves after each increment.
+
+```markdown
+# Design (Emergent)
+
+> This document reflects architecture that emerged through TDD.
+> Updated during Promote phase. Not a planning document.
+
+## Current Structure
+
+[Brief description of current module/package layout]
+
+### [Module/Package Name]
+- **Purpose**: [what it does]
+- **Emerged from**: [which increment/test drove its creation]
+- **Key patterns**: [notable design decisions]
+
+## Patterns Discovered
+
+### [Pattern Name]
+- **What**: [brief description]
+- **Why it emerged**: [which tests/requirements drove this]
+- **Where used**: [files/modules]
+
+## Open Questions
+
+- [Design questions not yet resolved]
+- [Areas that may need refactoring]
+
+## History
+
+| Date | Increment | Changes |
+|------|-----------|----------|
+| YYYY-MM-DD | [increment name] | [what emerged] |
+```
+
+**Key principle**: DESIGN.md is **retrospective**, not prescriptive. It documents what TDD discovered, not what was planned.
+
+---
+
 ## ADR Template
 
 When creating ADRs, use this structure:
@@ -307,6 +358,32 @@ Present as (using path from CONSTITUTION.md artifact layout):
 > 
 > Confirm? [yes/no]
 
+### DESIGN.md Update Example
+
+Learning: "State machine pattern emerged for timer transitions"
+
+Present as:
+
+> ## Proposed Addition to DESIGN.md
+>
+> ### Section: Patterns Discovered
+>
+> Add:
+>
+> ### State Machine for Timer
+> - **What**: Timer uses explicit state transitions (Idle → Running → Paused → Break)
+> - **Why it emerged**: Tests for pause/resume revealed flag-based approach was error-prone;
+>   state machine made transitions explicit and testable
+> - **Where used**: `pkg/timer/state.go`
+>
+> ### Section: History
+>
+> Add row:
+>
+> | 2025-01-27 | Pomodoro Timer | State machine pattern for timer, extracted from TestPause/TestResume |
+>
+> Confirm? [yes/no]
+
 ### API Contract Example
 
 Learning: "POST /auth/reset-password endpoint"
@@ -376,6 +453,11 @@ When promoting learnings, do NOT:
 **For README updates:**
 - "Did the project's purpose change?"
 - "Is there new setup information?"
+
+**For DESIGN.md updates:**
+- "Did any architectural pattern emerge from TDD that wasn't planned?"
+- "Did the module structure evolve? Should DESIGN.md reflect the new shape?"
+- "Would a future developer wonder 'why is it structured this way?'"
 
 **For cleanup:**
 - "All learnings promoted. Ready to delete .4dc/current/?"

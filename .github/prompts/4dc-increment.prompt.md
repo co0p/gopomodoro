@@ -3,8 +3,8 @@ name: 4dc-increment
 argument-hint: a short feature description or user story (e.g., "add password reset" or "users can export data as CSV")
 title: Slice a feature into shippable deliverables
 description: Discover WHAT to build through Socratic questioning, slice into small deliverables
-version: 120dfb7
-generatedAt: 2026-01-27T08:32:13Z
+version: 6ef364d
+generatedAt: 2026-01-29T17:04:13Z
 source: https://github.com/co0p/4dc
 ---
 
@@ -60,6 +60,7 @@ Generate `.4dc/current/increment.md` that captures:
 
 - **User Story**: As a..., I want..., so that...
 - **Acceptance Criteria**: Observable behaviors that must be true
+- **Acceptance Test Stubs**: Greppable test names for each criterion
 - **Use Case**: Actors, preconditions, main flow, alternates
 - **Context**: Why this matters now
 - **Deliverables**: Ordered slices, each shippable independently
@@ -136,6 +137,50 @@ Follow this process to produce an `increment.md` that captures what to build.
    Clearly label this as **STOP AC**.
    Ask: "Are these criteria complete? What's missing or wrong?"
    Iterate until user confirms "complete enough."
+
+### Phase 2b – Generate Acceptance Test Stubs (STOP AT)
+
+4b. **Generate Test Stubs for Each Criterion → STOP AT**
+
+   For each acceptance criterion, generate a test stub name using this **greppable naming convention**:
+
+   ```
+   Test<Feature>_Given<Context>_When<Action>_Then<Result>
+   ```
+
+   **Naming rules:**
+   - Use PascalCase, no spaces or special characters
+   - Feature = the increment's main capability
+   - Given/When/Then map directly from the AC
+   - Keep names under 80 characters (abbreviate if needed)
+
+   **Example mapping:**
+
+   | Acceptance Criterion | Test Stub Name |
+   |---------------------|----------------|
+   | Given idle timer, when Start clicked, then 25:00 countdown begins | `TestPomodoro_GivenIdle_WhenStartClicked_ThenCountdownBegins` |
+   | Given running timer, when Pause clicked, then timer freezes | `TestPomodoro_GivenRunning_WhenPauseClicked_ThenTimerFreezes` |
+   | Given 4 completed pomodoros, when pomodoro ends, then long break starts | `TestPomodoro_Given4Completed_WhenPomodoroEnds_ThenLongBreakStarts` |
+
+   Present the mapping:
+
+   ```markdown
+   ## Acceptance Test Stubs
+
+   | AC | Test Name | Status |
+   |----|-----------|--------|
+   | Given [context], when [action], then [result] | `Test<Feature>_Given<X>_When<Y>_Then<Z>` | ⬜ Not implemented |
+   ...
+   ```
+
+   These stubs:
+   - **Are greppable**: `grep -r "TestPomodoro_Given" pkg/` finds all tests for the feature
+   - **Map 1:1 to ACs**: Every AC has exactly one test stub
+   - **Are language-agnostic**: Adapt casing to project conventions (e.g., `test_pomodoro_given_idle` for Python)
+
+   Clearly label this as **STOP AT**.
+   Ask: "Do these test names accurately reflect the acceptance criteria?"
+   Wait for user confirmation before continuing.
 
 ### Phase 3 – Define Use Case (STOP UC)
 
@@ -306,11 +351,22 @@ As a [actor], I want [capability], so that [benefit].
 - [Explicit exclusions for this increment]
 - [Things that are follow-up work]
 
+## Acceptance Test Stubs
+
+| AC | Test Name | Status |
+|----|-----------|--------|
+| Given [context], when [action], then [result] | `Test<Feature>_Given<X>_When<Y>_Then<Z>` | ⬜ |
+| ... | ... | ... |
+
+**Greppable pattern**: `grep -r "Test<Feature>_Given" <test-dir>/`
+
 ## Promotion Checklist
 
 - [ ] Architectural decisions to add to CONSTITUTION.md?
 - [ ] API contracts to document (location per CONSTITUTION.md)?
 - [ ] Patterns worth capturing as ADRs (location per CONSTITUTION.md)?
+- [ ] Emergent design patterns to add to DESIGN.md?
+- [ ] All acceptance test stubs implemented and passing?
 - [ ] Backlog items discovered?
 ```
 

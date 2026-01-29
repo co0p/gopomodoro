@@ -2,6 +2,7 @@ package gopomodoro_test
 
 import (
 	"testing"
+	"time"
 
 	gopomodoro "github.com/co0p/gopomodoro/pkg"
 	mocks "github.com/co0p/gopomodoro/pkg/testing"
@@ -41,8 +42,9 @@ func TestStartedPomodoroHas25MinutesRemaining(t *testing.T) {
 
 	c.Start()
 
-	if c.RemainingMinutes() != int(gopomodoro.Pomodoro) {
-		t.Fatalf("expected %d minutes remaining, got %d", gopomodoro.Pomodoro, c.RemainingMinutes())
+	expected := time.Duration(gopomodoro.Pomodoro) * time.Minute
+	if c.Remaining() != expected {
+		t.Fatalf("expected %v remaining, got %v", expected, c.Remaining())
 	}
 }
 
@@ -52,9 +54,9 @@ func TestTickDecrementsRemainingMinutes(t *testing.T) {
 
 	c.Tick()
 
-	expected := int(gopomodoro.Pomodoro) - 1
-	if c.RemainingMinutes() != expected {
-		t.Fatalf("expected %d minutes remaining, got %d", expected, c.RemainingMinutes())
+	expected := time.Duration(gopomodoro.Pomodoro)*time.Minute - time.Minute
+	if c.Remaining() != expected {
+		t.Fatalf("expected %v remaining, got %v", expected, c.Remaining())
 	}
 }
 
@@ -104,9 +106,9 @@ func TestStopNotifiesObserverOfStateChange(t *testing.T) {
 func TestTickNotifiesObserverOfStateChange(t *testing.T) {
 	observer := &mocks.MockObserver{}
 	c := gopomodoro.Cycle{
-		State:     gopomodoro.Pomodoro,
-		Remaining: 25,
-		Observer:  observer,
+		State:    gopomodoro.Pomodoro,
+		TimeLeft: 25 * time.Minute,
+		Observer: observer,
 	}
 
 	c.Tick()

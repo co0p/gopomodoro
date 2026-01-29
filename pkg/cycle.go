@@ -1,5 +1,7 @@
 package gopomodoro
 
+import "time"
+
 // CycleState represents the state of the pomodoro cycle.
 // When used as duration, the value represents minutes.
 type CycleState int
@@ -22,10 +24,10 @@ type CycleObserver interface {
 }
 
 type Cycle struct {
-	State     CycleState
-	Remaining int
-	Ticker    Ticker
-	Observer  CycleObserver
+	State    CycleState
+	TimeLeft time.Duration
+	Ticker   Ticker
+	Observer CycleObserver
 }
 
 func (c *Cycle) Is(s CycleState) bool {
@@ -41,7 +43,7 @@ func (c *Cycle) notifyStateChanged() {
 func (c *Cycle) Start() {
 	if c.State == Idle {
 		c.State = Pomodoro
-		c.Remaining = int(Pomodoro)
+		c.TimeLeft = time.Duration(Pomodoro) * time.Minute
 		c.notifyStateChanged()
 		if c.Ticker != nil {
 			c.Ticker.Start()
@@ -56,23 +58,23 @@ func (c *Cycle) Start() {
 
 func (c *Cycle) Stop() {
 	c.State = Idle
-	c.Remaining = 0
+	c.TimeLeft = 0
 	c.notifyStateChanged()
 	if c.Ticker != nil {
 		c.Ticker.Stop()
 	}
 }
 
-func (c *Cycle) RemainingMinutes() int {
-	return c.Remaining
+func (c *Cycle) Remaining() time.Duration {
+	return c.TimeLeft
 }
 
 func (c *Cycle) Tick() {
 	if c.State != Pomodoro {
 		return
 	}
-	c.Remaining--
-	if c.Remaining == 0 {
+	c.TimeLeft -= time.Minute
+	if c.TimeLeft <= 0 {
 		c.Stop()
 	}
 	c.notifyStateChanged()
