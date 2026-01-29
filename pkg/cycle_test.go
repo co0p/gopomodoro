@@ -52,7 +52,7 @@ func TestTickDecrementsRemainingMinutes(t *testing.T) {
 	c := &gopomodoro.Cycle{}
 	c.Start()
 
-	c.Tick()
+	c.AdvanceMinute()
 
 	expected := time.Duration(gopomodoro.Pomodoro)*time.Minute - time.Minute
 	if c.Remaining() != expected {
@@ -64,10 +64,7 @@ func TestCycle_GivenPomodoroRunning_WhenTimerReachesZero_ThenShortBreakStarts(t 
 	c := &gopomodoro.Cycle{}
 	c.Start()
 
-	// Tick through all pomodoro minutes
-	for i := 0; i < int(gopomodoro.Pomodoro); i++ {
-		c.Tick()
-	}
+	mocks.CompleteCycle(c)
 
 	if !c.Is(gopomodoro.ShortBreak) {
 		t.Fatalf("expected cycle to be in ShortBreak state, got %v", c.State)
@@ -85,10 +82,7 @@ func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenNextPomodoroStart
 		TimeLeft: 5 * time.Minute,
 	}
 
-	// Tick through all short break minutes
-	for i := 0; i < int(gopomodoro.ShortBreak); i++ {
-		c.Tick()
-	}
+	mocks.CompleteCycle(c)
 
 	if !c.Is(gopomodoro.Pomodoro) {
 		t.Fatalf("expected cycle to automatically start next Pomodoro, got %v", c.State)
@@ -154,7 +148,7 @@ func TestTickNotifiesObserverOfStateChange(t *testing.T) {
 		Observer: observer,
 	}
 
-	c.Tick()
+	c.AdvanceMinute()
 
 	// Tick should notify of state change
 	if len(observer.StateChanges) != 1 {
@@ -194,10 +188,7 @@ func TestCycle_Given3CompletedPomodoros_When4thCompletes_ThenLongBreakStarts(t *
 	// Complete 4 pomodoros (each followed by a break, except the 4th)
 	for i := 0; i < 4; i++ {
 		c.Start()
-		// Tick through full pomodoro
-		for j := 0; j < int(gopomodoro.Pomodoro); j++ {
-			c.Tick()
-		}
+		mocks.CompleteCycle(c)
 
 		// After 1st, 2nd, 3rd pomodoro: should be in short break
 		if i < 3 {
@@ -205,9 +196,7 @@ func TestCycle_Given3CompletedPomodoros_When4thCompletes_ThenLongBreakStarts(t *
 				t.Fatalf("pomodoro %d: expected ShortBreak, got %v", i+1, c.State)
 			}
 			// Complete the short break - should auto-start next pomodoro
-			for j := 0; j < int(gopomodoro.ShortBreak); j++ {
-				c.Tick()
-			}
+			mocks.CompleteCycle(c)
 			// Should automatically start next Pomodoro
 			if !c.Is(gopomodoro.Pomodoro) {
 				t.Fatalf("after break %d: expected Pomodoro to auto-start, got %v", i+1, c.State)
@@ -232,10 +221,7 @@ func TestCycle_GivenLongBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *t
 		TimeLeft: 15 * time.Minute,
 	}
 
-	// Tick through all long break minutes
-	for i := 0; i < int(gopomodoro.LongBreak); i++ {
-		c.Tick()
-	}
+	mocks.CompleteCycle(c)
 
 	if !c.Is(gopomodoro.Idle) {
 		t.Fatalf("expected cycle to be Idle, got %v", c.State)
@@ -269,29 +255,22 @@ func TestCycle_GivenPomodoroRunning_WhenStopClicked_ThenCounterResets(t *testing
 	// Complete 2 pomodoros to increment counter
 	for i := 0; i < 2; i++ {
 		c.Start()
-		// Tick through full pomodoro
-		for j := 0; j < int(gopomodoro.Pomodoro); j++ {
-			c.Tick()
-		}
+		mocks.CompleteCycle(c)
 		// Complete short break
-		for j := 0; j < int(gopomodoro.ShortBreak); j++ {
-			c.Tick()
-		}
+		mocks.CompleteCycle(c)
 	}
 
 	// Start 3rd pomodoro and stop it mid-way
 	c.Start()
 	for j := 0; j < 10; j++ {
-		c.Tick()
+		c.AdvanceMinute()
 	}
 
 	c.Stop()
 
 	// Start a new pomodoro and complete it
 	c.Start()
-	for j := 0; j < int(gopomodoro.Pomodoro); j++ {
-		c.Tick()
-	}
+	mocks.CompleteCycle(c)
 
 	// Should be in ShortBreak (counter was reset, so this is the 1st pomodoro)
 	if !c.Is(gopomodoro.ShortBreak) {
