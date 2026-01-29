@@ -1,4 +1,4 @@
-.PHONY: build test install clean
+.PHONY: build test install clean run
 
 BINARY_NAME=gopomodoro
 BUILD_DIR=bin
@@ -9,6 +9,9 @@ build:
 
 test:
 	go test ./...
+
+run:
+	go run ./cmd/gopomodoro
 
 install: build
 	cp $(BUILD_DIR)/$(BINARY_NAME) /usr/local/bin/$(BINARY_NAME)

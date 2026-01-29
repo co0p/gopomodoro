@@ -29,3 +29,14 @@ func TestTray_GivenPomodoroRunning_WhenDisplayed_ThenShowsTimeWithMSuffix(t *tes
 		t.Fatalf("expected %q, got %q", expected, result)
 	}
 }
+
+func TestTray_GivenShortBreakRunning_WhenDisplayed_ThenShowsCoffeeIconWithMinutes(t *testing.T) {
+	formatter := tray.Formatter{}
+
+	result := formatter.Format(gopomodoro.ShortBreak, 5*time.Minute)
+
+	expected := "☕ 5m"
+	if result != expected {
+		t.Fatalf("expected %q, got %q", expected, result)
+	}
+}

@@ -60,17 +60,59 @@ func TestTickDecrementsRemainingMinutes(t *testing.T) {
 	}
 }
 
-func TestCycleTransitionsToIdleWhenRemainingReachesZero(t *testing.T) {
+func TestCycle_GivenPomodoroRunning_WhenTimerReachesZero_ThenShortBreakStarts(t *testing.T) {
 	c := &gopomodoro.Cycle{}
 	c.Start()
 
-	// Tick through all minutes
+	// Tick through all pomodoro minutes
 	for i := 0; i < int(gopomodoro.Pomodoro); i++ {
 		c.Tick()
 	}
 
+	if !c.Is(gopomodoro.ShortBreak) {
+		t.Fatalf("expected cycle to be in ShortBreak state, got %v", c.State)
+	}
+
+	expected := 5 * time.Minute
+	if c.Remaining() != expected {
+		t.Fatalf("expected %v remaining, got %v", expected, c.Remaining())
+	}
+}
+
+func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *testing.T) {
+	c := &gopomodoro.Cycle{
+		State:    gopomodoro.ShortBreak,
+		TimeLeft: 5 * time.Minute,
+	}
+
+	// Tick through all short break minutes
+	for i := 0; i < int(gopomodoro.ShortBreak); i++ {
+		c.Tick()
+	}
+
 	if !c.Is(gopomodoro.Idle) {
-		t.Fatal("expected cycle to be idle after all ticks")
+		t.Fatalf("expected cycle to be Idle, got %v", c.State)
+	}
+
+	if c.Remaining() != 0 {
+		t.Fatalf("expected 0 remaining, got %v", c.Remaining())
+	}
+}
+
+func TestCycle_GivenShortBreakRunning_WhenStopClicked_ThenReturnsToIdle(t *testing.T) {
+	c := &gopomodoro.Cycle{
+		State:    gopomodoro.ShortBreak,
+		TimeLeft: 3 * time.Minute,
+	}
+
+	c.Stop()
+
+	if !c.Is(gopomodoro.Idle) {
+		t.Fatalf("expected cycle to be Idle, got %v", c.State)
+	}
+
+	if c.Remaining() != 0 {
+		t.Fatalf("expected 0 remaining, got %v", c.Remaining())
 	}
 }
 

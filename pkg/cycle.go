@@ -7,8 +7,9 @@ import "time"
 type CycleState int
 
 const (
-	Idle     CycleState = 0
-	Pomodoro CycleState = 25
+	Idle       CycleState = 0
+	ShortBreak CycleState = 5
+	Pomodoro   CycleState = 25
 )
 
 // Ticker provides time ticks for the pomodoro countdown.
@@ -70,12 +71,20 @@ func (c *Cycle) Remaining() time.Duration {
 }
 
 func (c *Cycle) Tick() {
-	if c.State != Pomodoro {
-		return
+	switch c.State {
+	case Pomodoro:
+		c.TimeLeft -= time.Minute
+		if c.TimeLeft <= 0 {
+			c.State = ShortBreak
+			c.TimeLeft = time.Duration(ShortBreak) * time.Minute
+		}
+		c.notifyStateChanged()
+	case ShortBreak:
+		c.TimeLeft -= time.Minute
+		if c.TimeLeft <= 0 {
+			c.Stop()
+			return
+		}
+		c.notifyStateChanged()
 	}
-	c.TimeLeft -= time.Minute
-	if c.TimeLeft <= 0 {
-		c.Stop()
-	}
-	c.notifyStateChanged()
 }
