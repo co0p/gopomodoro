@@ -17,7 +17,8 @@ func TestNewCycleIsIdle(t *testing.T) {
 }
 
 func TestStartingIdleCycleTransitionsToPomodoro(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 
 	c.Start()
 
@@ -27,7 +28,8 @@ func TestStartingIdleCycleTransitionsToPomodoro(t *testing.T) {
 }
 
 func TestStoppingRunningCycleTransitionsToIdle(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 	c.Start()
 
 	c.Stop()
@@ -38,7 +40,8 @@ func TestStoppingRunningCycleTransitionsToIdle(t *testing.T) {
 }
 
 func TestStartedPomodoroHas25MinutesRemaining(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 
 	c.Start()
 
@@ -49,7 +52,8 @@ func TestStartedPomodoroHas25MinutesRemaining(t *testing.T) {
 }
 
 func TestTickDecrementsRemainingMinutes(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 	c.Start()
 
 	c.AdvanceMinute()
@@ -61,7 +65,8 @@ func TestTickDecrementsRemainingMinutes(t *testing.T) {
 }
 
 func TestCycle_GivenPomodoroRunning_WhenTimerReachesZero_ThenShortBreakStarts(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 	c.Start()
 
 	mocks.CompleteCycle(c)
@@ -77,7 +82,9 @@ func TestCycle_GivenPomodoroRunning_WhenTimerReachesZero_ThenShortBreakStarts(t 
 }
 
 func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenNextPomodoroStarts(t *testing.T) {
+	ticker := &mocks.MockTicker{}
 	c := &gopomodoro.Cycle{
+		Ticker:   ticker,
 		State:    gopomodoro.ShortBreak,
 		TimeLeft: 5 * time.Minute,
 	}
@@ -95,7 +102,9 @@ func TestCycle_GivenShortBreakRunning_WhenTimerReachesZero_ThenNextPomodoroStart
 }
 
 func TestCycle_GivenShortBreakRunning_WhenStopClicked_ThenReturnsToIdle(t *testing.T) {
+	ticker := &mocks.MockTicker{}
 	c := &gopomodoro.Cycle{
+		Ticker:   ticker,
 		State:    gopomodoro.ShortBreak,
 		TimeLeft: 3 * time.Minute,
 	}
@@ -112,8 +121,9 @@ func TestCycle_GivenShortBreakRunning_WhenStopClicked_ThenReturnsToIdle(t *testi
 }
 
 func TestStartNotifiesObserverOfStateChange(t *testing.T) {
+	ticker := &mocks.MockTicker{}
 	observer := &mocks.MockObserver{}
-	c := gopomodoro.Cycle{Observer: observer}
+	c := gopomodoro.Cycle{Ticker: ticker, Observer: observer}
 
 	c.Start()
 
@@ -126,8 +136,9 @@ func TestStartNotifiesObserverOfStateChange(t *testing.T) {
 }
 
 func TestStopNotifiesObserverOfStateChange(t *testing.T) {
+	ticker := &mocks.MockTicker{}
 	observer := &mocks.MockObserver{}
-	c := gopomodoro.Cycle{State: gopomodoro.Pomodoro, Observer: observer}
+	c := gopomodoro.Cycle{Ticker: ticker, State: gopomodoro.Pomodoro, Observer: observer}
 	c.Start()
 
 	c.Stop()
@@ -183,7 +194,8 @@ func TestTickerFireTriggersTickAndNotifiesObserver(t *testing.T) {
 }
 
 func TestCycle_Given3CompletedPomodoros_When4thCompletes_ThenLongBreakStarts(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 
 	// Complete 4 pomodoros (each followed by a break, except the 4th)
 	for i := 0; i < 4; i++ {
@@ -216,7 +228,9 @@ func TestCycle_Given3CompletedPomodoros_When4thCompletes_ThenLongBreakStarts(t *
 }
 
 func TestCycle_GivenLongBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *testing.T) {
+	ticker := &mocks.MockTicker{}
 	c := &gopomodoro.Cycle{
+		Ticker:   ticker,
 		State:    gopomodoro.LongBreak,
 		TimeLeft: 15 * time.Minute,
 	}
@@ -233,7 +247,9 @@ func TestCycle_GivenLongBreakRunning_WhenTimerReachesZero_ThenReturnsToIdle(t *t
 }
 
 func TestCycle_GivenLongBreakRunning_WhenStopClicked_ThenReturnsToIdle(t *testing.T) {
+	ticker := &mocks.MockTicker{}
 	c := &gopomodoro.Cycle{
+		Ticker:   ticker,
 		State:    gopomodoro.LongBreak,
 		TimeLeft: 10 * time.Minute,
 	}
@@ -250,7 +266,8 @@ func TestCycle_GivenLongBreakRunning_WhenStopClicked_ThenReturnsToIdle(t *testin
 }
 
 func TestCycle_GivenPomodoroRunning_WhenStopClicked_ThenCounterResets(t *testing.T) {
-	c := &gopomodoro.Cycle{}
+	ticker := &mocks.MockTicker{}
+	c := &gopomodoro.Cycle{Ticker: ticker}
 
 	// Complete 2 pomodoros to increment counter
 	for i := 0; i < 2; i++ {

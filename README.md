@@ -39,6 +39,13 @@ Example: `🍅 23` or `☕ 4`
   - **Pause**: Pause the current timer
   - **Reset**: Abandon current pomodoro and restart
 
+### Notifications
+- **Sound alerts**: A brief tone plays automatically when phases transition
+  - Pomodoro → Break (short or long)
+  - Break → Pomodoro
+  - Long break → Idle
+- **Purpose**: Stay focused without watching the timer constantly
+
 ## Timer Intervals
 
 | State | Duration | Icon |
@@ -65,6 +72,13 @@ After 4 completed pomodoros, the timer automatically moves to a long break.
 - Abandons the current pomodoro or break
 - Returns to idle state, ready to start fresh
 - Use when interruptions make the current pomodoro invalid
+
+## Flags
+
+### --silent
+- Disables all sound notifications
+- Visual timer updates continue normally
+- Usage: `gopomodoro --silent`
 
 ## The Philosophy
 
@@ -97,7 +111,7 @@ After 4 completed pomodoros, the timer automatically moves to a long break.
 
 This timer embraces minimalism:
 
-- **No notifications**: You choose when to check the timer
+- **Subtle notifications**: Optional sound alerts at phase transitions (disable with --silent)
 - **No customization**: The traditional intervals work. Trust the method.
 - **No statistics**: Focus on the present work, not the metrics
 - **No complexity**: Three actions. One purpose. Pure focus.

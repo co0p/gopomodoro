@@ -30,6 +30,7 @@ type Cycle struct {
 	TimeLeft time.Duration
 	Ticker   Ticker
 	Observer CycleObserver
+	Notifier Notifier
 
 	// pomodoroCount tracks completed pomodoros to determine break type.
 	// Increments when a pomodoro completes, persists across short breaks,
@@ -47,19 +48,26 @@ func (c *Cycle) notifyStateChanged() {
 	}
 }
 
+func (c *Cycle) notify() {
+	if c.Notifier != nil {
+		c.Notifier.Notify()
+	}
+}
+
 func (c *Cycle) Start() {
+	if c.Ticker == nil {
+		panic("Cycle.Start called without Ticker")
+	}
 	if c.State == Idle {
 		c.State = Pomodoro
 		c.TimeLeft = time.Duration(Pomodoro) * time.Minute
 		c.notifyStateChanged()
-		if c.Ticker != nil {
-			c.Ticker.Start()
-			go func() {
-				for range c.Ticker.OnTick() {
-					c.AdvanceMinute()
-				}
-			}()
-		}
+		c.Ticker.Start()
+		go func() {
+			for range c.Ticker.OnTick() {
+				c.AdvanceMinute()
+			}
+		}()
 	}
 }
 
@@ -68,9 +76,7 @@ func (c *Cycle) Stop() {
 	c.TimeLeft = 0
 	c.pomodoroCount = 0
 	c.notifyStateChanged()
-	if c.Ticker != nil {
-		c.Ticker.Stop()
-	}
+	c.Ticker.Stop()
 }
 
 func (c *Cycle) Remaining() time.Duration {
@@ -102,6 +108,7 @@ func (c *Cycle) advancePomodoro() {
 			c.State = ShortBreak
 			c.TimeLeft = time.Duration(ShortBreak) * time.Minute
 		}
+		c.notify()
 	}
 }
 
@@ -110,12 +117,15 @@ func (c *Cycle) advanceShortBreak() {
 	if c.TimeLeft <= 0 {
 		c.State = Pomodoro
 		c.TimeLeft = time.Duration(Pomodoro) * time.Minute
+		c.notify()
 	}
 }
 
 func (c *Cycle) advanceLongBreak() {
 	c.TimeLeft -= time.Minute
 	if c.TimeLeft <= 0 {
+		c.notify()
 		c.Stop()
 	}
+
 }

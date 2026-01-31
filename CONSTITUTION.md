@@ -42,6 +42,9 @@
 - Avoid constructors and setter methods unless validation is needed
 - Wiring happens in `main()`, not in constructors
 - This is idiomatic Go: simple, explicit, testable
+- **Required dependencies**: Ticker is required; `Cycle.Start()` panics if Ticker is nil
+- **Optional dependencies**: Observer and Notifier are optional (nil-safe helpers check before calling)
+- Rationale: Ticker is essential for cycle operation—without it, the timer cannot advance. Observer and Notifier are side effects, not core functionality.
 
 ## Testing Expectations
 
