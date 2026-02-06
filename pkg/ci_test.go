@@ -35,3 +35,17 @@ func TestCI_GivenWorkflow_WhenConfigured_ThenBuildsDarwinAndUploadsArtifact(t *t
 		t.Fatalf("expected workflow to build darwin artifact and upload it")
 	}
 }
+
+func TestCI_GivenWorkflow_WhenConfigured_ThenCreatesRelease(t *testing.T) {
+	path := filepath.Join("..", ".github", "workflows", "ci.yml")
+
+	data, err := os.ReadFile(path)
+	if err != nil {
+		t.Fatalf("expected workflow at %s: %v", path, err)
+	}
+
+	content := string(data)
+	if !strings.Contains(content, "softprops/action-gh-release") {
+		t.Fatalf("expected workflow to create a release")
+	}
+}

@@ -6,6 +6,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   ci:
     strategy:
@@ -36,3 +39,24 @@ jobs:
         with:
           name: gopomodoro-macos-${{ matrix.arch }}
           path: bin/gopomodoro-darwin-${{ matrix.arch }}
+
+  release:
+    needs: ci
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download macOS artifacts
+        uses: actions/download-artifact@v4
+        with:
+          pattern: gopomodoro-macos-*
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: main-${{ github.run_number }}
+          name: gopomodoro (main) #${{ github.run_number }}
+          body: |
+            Download the macOS binary for your CPU:
+            - Apple Silicon (M1/M2/M3): gopomodoro-darwin-arm64
+            - Intel: gopomodoro-darwin-amd64
+          files: gopomodoro-darwin-*

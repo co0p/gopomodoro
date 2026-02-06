@@ -3,6 +3,16 @@ GoPomodoro
 
 A minimal Pomodoro timer that lives in your taskbar, helping you maintain focus through structured work intervals.
 
+## DOWNLOAD
+
+### macOS
+
+1. Open the Releases page: https://github.com/co0p/gopomodoro/releases
+2. Download the correct file:
+  - Apple Silicon (M1/M2/M3): gopomodoro-darwin-arm64
+  - Intel: gopomodoro-darwin-amd64
+3. Run the downloaded binary.
+
 ## What is the Pomodoro Technique?
 
 The Pomodoro Technique is a time management method developed by Francesco Cirillo in the late 1980s. It uses a timer to break work into focused intervals, traditionally 25 minutes in length, separated by short breaks.
