@@ -170,6 +170,25 @@ func TestTickNotifiesObserverOfStateChange(t *testing.T) {
 	}
 }
 
+func TestTickNotifiesObserverOfStateChangeDuringLongBreak(t *testing.T) {
+	observer := &mocks.MockObserver{}
+	c := gopomodoro.Cycle{
+		State:    gopomodoro.LongBreak,
+		TimeLeft: 15 * time.Minute,
+		Observer: observer,
+	}
+
+	c.AdvanceMinute()
+
+	// Tick should notify of state change during long break
+	if len(observer.StateChanges) != 1 {
+		t.Fatalf("expected 1 state change, got %d", len(observer.StateChanges))
+	}
+	if observer.StateChanges[0] != gopomodoro.LongBreak {
+		t.Errorf("expected state change to LongBreak, got %v", observer.StateChanges[0])
+	}
+}
+
 func TestTickerFireTriggersTickAndNotifiesObserver(t *testing.T) {
 	ticker := mocks.NewMockTicker()
 	observer := &mocks.MockObserver{}

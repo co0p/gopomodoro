@@ -92,7 +92,6 @@ func (c *Cycle) AdvanceMinute() {
 		c.advanceShortBreak()
 	case LongBreak:
 		c.advanceLongBreak()
-		return
 	}
 	c.notifyStateChanged()
 }
