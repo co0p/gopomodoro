@@ -21,7 +21,7 @@ func TestCI_GivenPushToMain_WhenWorkflowConfigured_ThenTriggered(t *testing.T) {
 	}
 }
 
-func TestCI_GivenWorkflow_WhenConfigured_ThenBuildsDarwinAndUploadsArtifact(t *testing.T) {
+func TestCI_GivenWorkflow_WhenConfigured_ThenBuildsMacOSBundleAndUploadsArtifact(t *testing.T) {
 
 	path := filepath.Join("..", ".github", "workflows", "ci.yml")
 
@@ -31,8 +31,8 @@ func TestCI_GivenWorkflow_WhenConfigured_ThenBuildsDarwinAndUploadsArtifact(t *t
 	}
 
 	content := string(data)
-	if !strings.Contains(content, "make release") || !strings.Contains(content, "actions/upload-artifact") {
-		t.Fatalf("expected workflow to build darwin artifact and upload it")
+	if !strings.Contains(content, "make bundle") || !strings.Contains(content, "actions/upload-artifact") {
+		t.Fatalf("expected workflow to build macos bundle and upload it")
 	}
 }
 
