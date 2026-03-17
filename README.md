@@ -8,10 +8,10 @@ A minimal Pomodoro timer that lives in your taskbar, helping you maintain focus 
 ### macOS
 
 1. Open the Releases page: https://github.com/co0p/gopomodoro/releases
-2. Download the correct file:
-  - Apple Silicon (M1/M2/M3): gopomodoro-darwin-arm64
-  - Intel: gopomodoro-darwin-amd64
-3. Run the downloaded binary.
+2. Download the macOS app bundle zip:
+  - Apple Silicon (M1/M2/M3): gopomodoro-macos-arm64.zip
+3. Unzip, then drag `GoPomodoro.app` into Applications.
+4. First launch will show an “unverified developer” prompt. Choose Open to proceed.
 
 ## What is the Pomodoro Technique?
 

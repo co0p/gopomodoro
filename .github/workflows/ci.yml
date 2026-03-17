@@ -29,14 +29,19 @@ jobs:
       - name: Run tests
         run: make test
 
-      - name: Build macOS binaries
-        run: RELEASE_ARCHS=${{ matrix.arch }} make release
+      - name: Build macOS app bundle
+        run: make bundle
+
+      - name: Package macOS app bundle
+        run: |
+          cd bin
+          zip -r gopomodoro-macos-${{ matrix.arch }}.zip GoPomodoro.app
 
       - name: Upload macOS artifacts
         uses: actions/upload-artifact@v4
         with:
           name: gopomodoro-macos-${{ matrix.arch }}
-          path: bin/gopomodoro-darwin-${{ matrix.arch }}
+          path: bin/gopomodoro-macos-${{ matrix.arch }}.zip
 
   release:
     needs: ci
@@ -54,7 +59,6 @@ jobs:
           tag_name: main-${{ github.run_number }}
           name: gopomodoro (main) #${{ github.run_number }}
           body: |
-            Download the macOS binary for your CPU:
-            - Apple Silicon (M1/M2/M3): gopomodoro-darwin-arm64
-            - Intel: gopomodoro-darwin-amd64
-          files: gopomodoro-darwin-*
+            Download the macOS app bundle:
+            - Apple Silicon (M1/M2/M3): gopomodoro-macos-arm64.zip
+          files: gopomodoro-macos-*.zip
