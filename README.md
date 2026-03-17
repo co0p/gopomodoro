@@ -12,6 +12,8 @@ A minimal Pomodoro timer that lives in your taskbar, helping you maintain focus 
   - Apple Silicon (M1/M2/M3): gopomodoro-macos-arm64.zip
 3. Unzip, then drag `GoPomodoro.app` into Applications.
 4. First launch will show an “unverified developer” prompt. Choose Open to proceed.
+5. If macOS says the app is damaged, remove the quarantine attribute:
+  - `xattr -dr com.apple.quarantine /Applications/GoPomodoro.app`
 
 ## What is the Pomodoro Technique?
 
